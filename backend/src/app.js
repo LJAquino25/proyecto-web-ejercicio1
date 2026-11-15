@@ -7,14 +7,15 @@ const routes = require("./routes/routes.js");
 config();
 
 const app = express();
-const port = process.env.PORT;
+//const port = process.env.PORT;
+const port = 3007;
 
 app.use(cors());
 app.use(express.json());
 app.use("/api", routes);
 
 app.get("/", (req, res) => {
-    res.send("Server Online");
+  res.send("Server Online");
 });
 
 //Prueba conexion BD
@@ -28,5 +29,5 @@ app.get("/", async (req, res) => {
 });*/
 
 app.listen(port, () => {
-    console.log(`Servidor escuchando en http://localhost:${port}`);
+  console.log(`Servidor escuchando en http://localhost:${port}`);
 });

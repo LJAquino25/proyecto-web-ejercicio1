@@ -9,7 +9,7 @@ const {
   listMenu,
   alertStock,
   prepareRecipe,
-} = require("../controller/controller.js");
+} = require("../../controller/controller.js");
 
 router.post("/products", addProducts);
 router.get("/products", listProducts);

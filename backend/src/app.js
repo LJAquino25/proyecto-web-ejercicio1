@@ -2,13 +2,12 @@ const express = require("express");
 const { config } = require("dotenv");
 const cors = require("cors");
 const pool = require("./config/config.js");
-const routes = require("./routes/routes.js");
+const routes = require("./routes/index.js");
 
 config();
 
 const app = express();
-//const port = process.env.PORT;
-const port = 3007;
+const port = process.env.PORT || 3005;
 
 app.use(cors());
 app.use(express.json());
@@ -29,5 +28,5 @@ app.get("/", async (req, res) => {
 });*/
 
 app.listen(port, () => {
-  console.log(`Servidor escuchando en http://localhost:${port}`);
+  console.log(`Server listening on http://localhost:${port}`);
 });

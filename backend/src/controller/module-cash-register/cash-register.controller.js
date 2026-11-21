@@ -41,8 +41,8 @@ const openCashRegister = async (req, res) => {
   try {
     const {
       openingAmount,
-      branch = "Sucursal Principal",
-      cashier = "Cajero Turno"
+      branch = "Main Branch",
+      cashier = "Shift Cashier"
     } = req.body;
 
     const initialAmount = Number(openingAmount);
@@ -50,7 +50,7 @@ const openCashRegister = async (req, res) => {
     if (Number.isNaN(initialAmount) || initialAmount < 0) {
       return res.status(400).json({
         ok: false,
-        message: "El monto inicial debe ser un número mayor o igual a 0."
+        message: "The opening amount must be a number greater than or equal to 0."
       });
     }
 
@@ -58,7 +58,7 @@ const openCashRegister = async (req, res) => {
     if (existingOpen) {
       return res.status(409).json({
         ok: false,
-        message: `Ya existe una caja abierta para "${existingOpen.branch}".`,
+        message: `There is already an open cash register for "${existingOpen.branch}".`,
         openRegister: existingOpen
       });
     }
@@ -82,13 +82,13 @@ const openCashRegister = async (req, res) => {
 
     return res.status(201).json({
       ok: true,
-      message: "Apertura de caja registrada correctamente.",
+      message: "Cash register opening recorded successfully.",
       data: newShift
     });
   } catch (error) {
     return res.status(500).json({
       ok: false,
-      message: "Error interno al abrir la caja.",
+      message: "Internal error while opening the cash register.",
       error: error.message
     });
   }
@@ -103,7 +103,7 @@ const closeCashRegister = async (req, res) => {
     if (Number.isNaN(physicalCash) || physicalCash < 0) {
       return res.status(400).json({
         ok: false,
-        message: "El efectivo contado (countedCash) debe ser un número mayor o igual a 0."
+        message: "The counted cash (countedCash) must be a number greater than or equal to 0."
       });
     }
 
@@ -111,7 +111,7 @@ const closeCashRegister = async (req, res) => {
     if (!openShift) {
       return res.status(404).json({
         ok: false,
-        message: "No hay una caja abierta para cerrar."
+        message: "There is no open cash register to close."
       });
     }
 
@@ -134,7 +134,7 @@ const closeCashRegister = async (req, res) => {
 
     return res.status(200).json({
       ok: true,
-      message: "Cierre de caja realizado correctamente.",
+      message: "Cash register closed successfully.",
       data: {
         shift: openShift,
         summary: {
@@ -150,17 +150,17 @@ const closeCashRegister = async (req, res) => {
           difference,
           reconciliationStatus:
             difference === 0
-              ? "CUADRE_EXACTO"
+              ? "EXACT_MATCH"
               : difference > 0
-              ? "SOBRANTE"
-              : "FALTANTE"
+              ? "OVERAGE"
+              : "SHORTAGE"
         }
       }
     });
   } catch (error) {
     return res.status(500).json({
       ok: false,
-      message: "Error interno al cerrar la caja.",
+      message: "Internal error while closing the cash register.",
       error: error.message
     });
   }
@@ -204,25 +204,25 @@ const getCashRegisterHistory = async (req, res) => {
   } catch (error) {
     return res.status(500).json({
       ok: false,
-      message: "Error interno al consultar el historial de turnos.",
+      message: "Internal error while retrieving shift history.",
       error: error.message
     });
   }
 };
 
-// Función para que Ventas y Facturación acumule ventas al turno abierto
+// Function for Sales and Billing to accumulate sales into the open shift
 const registerSaleToOpenShift = ({ amount, paymentMethod, branch = null }) => {
   const numericAmount = Number(amount);
   const methodKey = normalizePaymentMethod(paymentMethod);
 
   if (Number.isNaN(numericAmount) || numericAmount <= 0) {
-    return { ok: false, message: "El monto de la venta debe ser mayor que 0." };
+    return { ok: false, message: "The sale amount must be greater than 0." };
   }
 
   if (!methodKey) {
     return {
       ok: false,
-      message: "Método de pago no válido (efectivo, tarjeta o Bitcoin/Chivo Wallet)."
+      message: "Invalid payment method (cash, card, or Bitcoin/Chivo Wallet)."
     };
   }
 
@@ -230,7 +230,7 @@ const registerSaleToOpenShift = ({ amount, paymentMethod, branch = null }) => {
   if (!openShift) {
     return {
       ok: false,
-      message: "No hay una caja abierta para registrar la venta."
+      message: "There is no open cash register to record the sale."
     };
   }
 
@@ -247,7 +247,7 @@ const registerSaleToOpenShift = ({ amount, paymentMethod, branch = null }) => {
   };
 };
 
-// Ruta auxiliar para simular ventas de prueba en el turno abierto
+// Helper route to simulate test sales in the open shift
 const addShiftSale = async (req, res) => {
   try {
     const { amount, paymentMethod, branch = null } = req.body;
@@ -259,13 +259,13 @@ const addShiftSale = async (req, res) => {
 
     return res.status(200).json({
       ok: true,
-      message: "Venta registrada en el turno abierto.",
+      message: "Sale recorded in the open shift.",
       data: result.shift
     });
   } catch (error) {
     return res.status(500).json({
       ok: false,
-      message: "Error interno al registrar la venta en caja.",
+      message: "Internal error while recording the sale in the cash register.",
       error: error.message
     });
   }

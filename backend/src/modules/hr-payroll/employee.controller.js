@@ -1,5 +1,5 @@
 const { json } = require("express");
-const model = require("../../models/module-hr/employee-model.js")
+const model = require("./employee.service.js")
 const bycrypjs = require("bcryptjs")
 
 const createEmployee = async (req, res) => {

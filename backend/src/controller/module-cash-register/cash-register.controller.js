@@ -1,7 +1,10 @@
 const {
   getAllCashRegisters,
   getOpenCashRegister,
+  resolveCashRegisterAndEmployee,
   addCashRegister,
+  updateCashSessionClose,
+  incrementCashSessionSale,
   getTotalSalesAmount
 } = require("../../data/data.cash-register.js");
 
@@ -42,7 +45,10 @@ const openCashRegister = async (req, res) => {
     const {
       openingAmount,
       branch = "Main Branch",
-      cashier = "Shift Cashier"
+      cashier = "Shift Cashier",
+      cashRegisterId = null,
+      employeeId = null,
+      notes = ""
     } = req.body;
 
     const initialAmount = Number(openingAmount);
@@ -54,7 +60,7 @@ const openCashRegister = async (req, res) => {
       });
     }
 
-    const existingOpen = getOpenCashRegister(branch);
+    const existingOpen = await getOpenCashRegister(branch);
     if (existingOpen) {
       return res.status(409).json({
         ok: false,
@@ -63,21 +69,28 @@ const openCashRegister = async (req, res) => {
       });
     }
 
-    const newShift = addCashRegister({
-      branch: String(branch).trim(),
-      cashier: String(cashier).trim(),
-      openingAmount: roundTwo(initialAmount),
-      openedAt: new Date().toISOString(),
-      closedAt: null,
-      status: "OPEN",
-      salesByMethod: {
-        cash: 0,
-        card: 0,
-        bitcoinChivo: 0
-      },
-      expectedCash: roundTwo(initialAmount),
-      countedCash: null,
-      difference: null
+    const resolved = await resolveCashRegisterAndEmployee({
+      branch,
+      cashier,
+      cashRegisterId,
+      employeeId
+    });
+
+    if (!resolved.cashRegisterId || !resolved.employeeId) {
+      return res.status(400).json({
+        ok: false,
+        message:
+          "Missing valid cash_register or active employee in the database to open the shift."
+      });
+    }
+
+    const roundedOpening = roundTwo(initialAmount);
+    const newShift = await addCashRegister({
+      cashRegisterId: resolved.cashRegisterId,
+      employeeId: resolved.employeeId,
+      openingAmount: roundedOpening,
+      expectedCash: roundedOpening,
+      notes
     });
 
     return res.status(201).json({
@@ -97,17 +110,24 @@ const openCashRegister = async (req, res) => {
 // POST /api/cash-register/close
 const closeCashRegister = async (req, res) => {
   try {
-    const { countedCash, branch = null, notes = "" } = req.body;
+    const {
+      countedCash,
+      declaredCard = null,
+      declaredDigital = null,
+      branch = null,
+      notes = ""
+    } = req.body;
 
     const physicalCash = Number(countedCash);
     if (Number.isNaN(physicalCash) || physicalCash < 0) {
       return res.status(400).json({
         ok: false,
-        message: "The counted cash (countedCash) must be a number greater than or equal to 0."
+        message:
+          "The counted cash (countedCash) must be a number greater than or equal to 0."
       });
     }
 
-    const openShift = getOpenCashRegister(branch);
+    const openShift = await getOpenCashRegister(branch);
     if (!openShift) {
       return res.status(404).json({
         ok: false,
@@ -123,22 +143,23 @@ const closeCashRegister = async (req, res) => {
     const roundedCountedCash = roundTwo(physicalCash);
     const difference = roundTwo(roundedCountedCash - expectedCash);
 
-    openShift.status = "CLOSED";
-    openShift.closedAt = new Date().toISOString();
-    openShift.expectedCash = expectedCash;
-    openShift.countedCash = roundedCountedCash;
-    openShift.difference = difference;
-    openShift.notes = String(notes || "").trim();
+    const closedShift = await updateCashSessionClose({
+      sessionId: openShift.id,
+      countedCash: roundedCountedCash,
+      declaredCard,
+      declaredDigital,
+      notes
+    });
 
-    const totalSales = getTotalSalesAmount(openShift.salesByMethod);
+    const totalSales = getTotalSalesAmount(closedShift.salesByMethod);
 
     return res.status(200).json({
       ok: true,
       message: "Cash register closed successfully.",
       data: {
-        shift: openShift,
+        shift: closedShift,
         summary: {
-          openingAmount: openShift.openingAmount,
+          openingAmount: closedShift.openingAmount,
           salesByMethod: {
             cash: cashSales,
             card: cardSales,
@@ -170,19 +191,7 @@ const closeCashRegister = async (req, res) => {
 const getCashRegisterHistory = async (req, res) => {
   try {
     const { status, branch } = req.query;
-    let history = getAllCashRegisters();
-
-    if (status) {
-      const normalizedStatus = String(status).trim().toUpperCase();
-      history = history.filter((item) => item.status === normalizedStatus);
-    }
-
-    if (branch) {
-      const normalizedBranch = String(branch).trim().toLowerCase();
-      history = history.filter(
-        (item) => item.branch.toLowerCase() === normalizedBranch
-      );
-    }
+    const history = await getAllCashRegisters({ status, branch });
 
     const enrichedHistory = history.map((shift) => {
       const cashSales = roundTwo(shift.salesByMethod.cash);
@@ -211,7 +220,11 @@ const getCashRegisterHistory = async (req, res) => {
 };
 
 // Function for Sales and Billing to accumulate sales into the open shift
-const registerSaleToOpenShift = ({ amount, paymentMethod, branch = null }) => {
+const registerSaleToOpenShift = async ({
+  amount,
+  paymentMethod,
+  branch = null
+}) => {
   const numericAmount = Number(amount);
   const methodKey = normalizePaymentMethod(paymentMethod);
 
@@ -226,7 +239,7 @@ const registerSaleToOpenShift = ({ amount, paymentMethod, branch = null }) => {
     };
   }
 
-  const openShift = getOpenCashRegister(branch);
+  const openShift = await getOpenCashRegister(branch);
   if (!openShift) {
     return {
       ok: false,
@@ -234,16 +247,15 @@ const registerSaleToOpenShift = ({ amount, paymentMethod, branch = null }) => {
     };
   }
 
-  openShift.salesByMethod[methodKey] = roundTwo(
-    openShift.salesByMethod[methodKey] + numericAmount
-  );
-  openShift.expectedCash = roundTwo(
-    openShift.openingAmount + openShift.salesByMethod.cash
-  );
+  const updatedShift = await incrementCashSessionSale({
+    sessionId: openShift.id,
+    methodKey,
+    amount: numericAmount
+  });
 
   return {
     ok: true,
-    shift: openShift
+    shift: updatedShift
   };
 };
 
@@ -251,7 +263,11 @@ const registerSaleToOpenShift = ({ amount, paymentMethod, branch = null }) => {
 const addShiftSale = async (req, res) => {
   try {
     const { amount, paymentMethod, branch = null } = req.body;
-    const result = registerSaleToOpenShift({ amount, paymentMethod, branch });
+    const result = await registerSaleToOpenShift({
+      amount,
+      paymentMethod,
+      branch
+    });
 
     if (!result.ok) {
       return res.status(400).json(result);

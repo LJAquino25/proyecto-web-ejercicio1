@@ -6,7 +6,7 @@ const {
   closeCashRegister,
   getCashRegisterHistory,
   addShiftSale
-} = require("../../controller/module-cash-register/cash-register.controller.js");
+} = require("../../modules/cash-register/cash-register.controller.js");
 
 router.post("/open", openCashRegister);
 router.post("/close", closeCashRegister);

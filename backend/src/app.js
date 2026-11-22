@@ -1,10 +1,11 @@
 const express = require("express");
 const { config } = require("dotenv");
 const cors = require("cors");
-const pool = require("./config/config.js");
-const routes = require("./routes/index.js");
 
 config();
+
+const pool = require("./config/config.js");
+const routes = require("./routes/index.js");
 
 const app = express();
 const port = process.env.PORT || 3005;
@@ -18,14 +19,14 @@ app.get("/", (req, res) => {
 });
 
 //Prueba conexion BD
-/*app.get("/", async (req, res) => {
+app.get("/cafeteria", async (req, res) => {
     const result = await pool.query("SELECT current_database()");
     res.send(`Nombre de la BD: ${result.rows[0].current_database}`);
 });
-app.get("/", async (req, res) => {
+app.get("/cafeteria", async (req, res) => {
     const result = await pool.query("SELECT * FROM ");
     res.json(result.rows);
-});*/
+});
 
 app.listen(port, () => {
   console.log(`Server listening on http://localhost:${port}`);

@@ -1,5 +1,5 @@
 const { json } = require("express");
-const employeeModel = require("../../models/module-hr/payroll-model.js")
+const employeeModel = require("./payroll.service.js")
 
 const createPayroll = async (req, res) => {
     try {

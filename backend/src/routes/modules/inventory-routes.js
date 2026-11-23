@@ -9,6 +9,7 @@ const {
   listMenu,
   alertStock,
   prepareRecipe,
+  addCatalog,
 } = require("../../controller/module-inventory-recipes/inventory-recipes.controller.js");
 
 router.post("/products", addProducts);
@@ -18,5 +19,6 @@ router.get("/recipes", listRecipes);
 router.get("/catalog", listMenu);
 router.get("/inventory/alerts", alertStock);
 router.post("/prepare", prepareRecipe);
+router.post("/catalog", addCatalog);
 
 module.exports = router;

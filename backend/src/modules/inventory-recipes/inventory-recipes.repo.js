@@ -137,6 +137,35 @@ const createInventoryMovement = async (
   );
 };
 
+const findProductByName = async (name, db = pool) => {
+  const result = await db.query(
+    `SELECT id, name, price, product_type FROM product WHERE LOWER(name) = LOWER($1)`,
+    [name],
+  );
+  return result.rows[0] || null;
+};
+
+const createProduct = async ({ name, price, productType }, db = pool) => {
+  const result = await db.query(
+    `INSERT INTO product(name, price, product_type)
+  VALUES ($1, $2, $3) RETURNING id, name, price, product_type`,
+    [name, price, productType],
+  );
+  return result.rows[0];
+};
+
+const createPackagedProduct = async (
+  { productId, supplierId, unitCost },
+  db = pool,
+) => {
+  const result = await db.query(
+    `INSERT INTO packaged_product(product_id, supplier_id, unit_cost)
+    VALUES ($1, $2, $3)`,
+    [productId, supplierId, unitCost],
+  );
+  return result.rows[0];
+};
+
 module.exports = {
   findSupplyByName,
   createSupply,
@@ -151,4 +180,7 @@ module.exports = {
   getBranchSupplyStockForUpdate,
   decrementBranchSupplyStock,
   createInventoryMovement,
+  findProductByName,
+  createProduct,
+  createPackagedProduct,
 };

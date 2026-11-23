@@ -6,10 +6,10 @@ const insert = async ({ branch_id, role, full_name, email, password_hash, monthl
         VALUES($1, $2, $3, $4, $5, $6, $7)
         RETURNING id, branch_id, role, full_name, email, monthly_salary, is_active;`
         , [branch_id, role, full_name, email, password_hash, monthly_salary, is_active])
-    return result.rows;
+    return result.rows[0];
 }
 
-const update = async (branch_id, role, full_name, email, monthly_salary, is_active) => {
+const update = async ({ branch_id, role, full_name, email, monthly_salary, is_active, id }) => {
     const result = await pool.query(
         `UPDATE employee 
         SET 
@@ -21,11 +21,11 @@ const update = async (branch_id, role, full_name, email, monthly_salary, is_acti
             is_active = COALESCE($6, is_active) 
         WHERE id = $7 
         RETURNING id, branch_id, role, full_name, email, monthly_salary, is_active;`
-        , [branch_id, role, full_name, email, monthly_salary, is_active])
+        , [branch_id, role, full_name, email, monthly_salary, is_active, id])
     return result.rows[0];
 }
 
-const remove = async (id) => {
+const remove = async ({ id }) => {
     const result = await pool.query("DELETE FROM employee WHERE id = $1 RETURNING id, full_name, email;", [id])
     return result.rows[0];
 }

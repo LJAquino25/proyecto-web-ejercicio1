@@ -3,7 +3,7 @@ const pool = require("../../config/config.js")
 const insert = async ({ employee_id, period, fortnight, base_salary, isss, afp, isr }) => {
     const result = await pool.query(
         `INSERT INTO payroll (employee_id, period, fortnight, base_salary, isss, afp, isr) 
-        VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        VALUES($1, $2, $3, $4, $5, $6, $7)
         RETURNING employee_id, period, fortnight, base_salary, isss, afp, isr, total_deduction, net_salary;`
         , [employee_id, period, fortnight, base_salary, isss, afp, isr])
     return result.rows;

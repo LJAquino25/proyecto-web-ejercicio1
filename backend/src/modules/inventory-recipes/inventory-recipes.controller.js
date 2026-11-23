@@ -111,6 +111,29 @@ const prepareRecipe = async (req, res) => {
   }
 };
 
+const addCatalog = async (req, res) => {
+  try {
+    const result = await inventoryRecipesService.addCatalog({
+      name: req.body.name,
+      price: Number(req.body.price),
+      productType: req.body.productType || "PREPARED",
+      supplierId:
+        req.body.supplierId !== undefined ? Number(req.body.supplierId) : null,
+      unitCost:
+        req.body.unitCost !== undefined ? Number(req.body.unitCost) : null,
+    });
+    return res.status(201).json({
+      message: "Product successfully added",
+      ...result,
+    });
+  } catch (error) {
+    const status = error.statusCode || 500;
+    return res.status(status).json({
+      message: error.message || "Error adding product",
+    });
+  }
+};
+
 module.exports = {
   addProducts,
   listProducts,
@@ -119,4 +142,5 @@ module.exports = {
   listMenu,
   alertStock,
   prepareRecipe,
+  addCatalog,
 };

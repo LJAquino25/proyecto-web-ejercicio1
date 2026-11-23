@@ -218,6 +218,72 @@ const prepareRecipe = async ({
   }
 };
 
+const addCatalog = async ({
+  name,
+  price,
+  productType = "PREPARED",
+  supplierId = null,
+  unitCost = null,
+}) => {
+  const normalizedType = String(productType).toUpperCase();
+  if (!name || Number.isNaN(price) || price <= 0) {
+    throw createHttpError(400, "Name or price not valid");
+  }
+
+  if (!["PREPARED", "PACKAGED"].includes(normalizedType)) {
+    throw createHttpError(400, "Product type must be PREPARED or PACKAGED");
+  }
+
+  if (normalizedType === "PACKAGED") {
+    if (!Number.isInteger(supplierId) || supplierId <= 0) {
+      throw createHttpError(
+        400,
+        "Valid supplierId is required for PACKAGED products",
+      );
+    }
+    if (Number.isNaN(unitCost) || unitCost === null || unitCost <= 0) {
+      throw createHttpError(
+        400,
+        "Valid unitCost is required for PACKAGED products",
+      );
+    }
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    let product = await inventoryRecipesRepo.findProductByName(name, client);
+    if (product) {
+      throw createHttpError(400, "A product with this name already exists");
+    }
+    product = await inventoryRecipesRepo.createProduct(
+      { name, price, productType: normalizedType },
+      client,
+    );
+    if (normalizedType == "PACKAGED") {
+      const productId = product.id;
+      await inventoryRecipesRepo.createPackagedProduct(
+        { productId, supplierId, unitCost },
+        client,
+      );
+    }
+
+    await client.query("COMMIT");
+
+    return {
+      product_id: product.id,
+      name: product.name,
+      price: product.price,
+      product_type: product.product_type,
+    };
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
 module.exports = {
   addProductToInventory,
   listProducts,
@@ -226,4 +292,5 @@ module.exports = {
   listMenu,
   getStockAlerts,
   prepareRecipe,
+  addCatalog,
 };

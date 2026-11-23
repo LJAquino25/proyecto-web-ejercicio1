@@ -80,10 +80,8 @@ const getAllRecipes = async (db = pool) => {
   return result.rows;
 };
 
-const getPreparedMenu = async (db = pool) => {
-  const result = await db.query(
-    "SELECT id, name, price FROM product WHERE product_type = 'PREPARED' ORDER BY name ASC",
-  );
+const getCatalog = async (db = pool) => {
+  const result = await db.query("SELECT id, name, price FROM product");
   return result.rows;
 };
 
@@ -174,7 +172,7 @@ module.exports = {
   createRecipe,
   createRecipeDetail,
   getAllRecipes,
-  getPreparedMenu,
+  getCatalog,
   getLowStockByBranch,
   getRecipeIngredients,
   getBranchSupplyStockForUpdate,

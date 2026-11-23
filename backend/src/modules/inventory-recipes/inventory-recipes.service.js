@@ -138,7 +138,7 @@ const listRecipes = async () => {
 };
 
 const listMenu = async () => {
-  return await inventoryRecipesRepo.getPreparedMenu();
+  return await inventoryRecipesRepo.getCatalog();
 };
 
 const getStockAlerts = async (branchId = 1) => {

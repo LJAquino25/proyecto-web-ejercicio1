@@ -9,7 +9,7 @@ const {
   listMenu,
   alertStock,
   prepareRecipe,
-} = require("../../controller/module-inventory-recipes/inventory-recipes.controller.js");
+} = require("../../modules/inventory-recipes/inventory-recipes.controller.js");
 
 router.post("/products", addProducts);
 router.get("/products", listProducts);

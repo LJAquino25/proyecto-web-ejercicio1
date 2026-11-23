@@ -8,7 +8,7 @@ const {
     getlistorders,
     deleteOrders,
     postinvoices
-} = require("../controller/module-sales-billing/controller-sales-billing"); 
+} = require("../../modules/sales-billing/sales-billing.controller.js"); 
 
 router.post("/orders", postAddOrder);          
 router.get("/orders", getlistorders);        

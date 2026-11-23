@@ -6,12 +6,12 @@ const {
     editEmployee,
     deleteEmployee,
     listEmployee
-} = require("../../controller/module-hr/employee-controller.js")
+} = require("../../modules/hr-payroll/employee.controller.js")
 
 const {
     createPayroll,
     listPayroll
-} = require("../../controller/module-hr/payroll-controller.js")
+} = require("../../modules/hr-payroll/payroll.controller.js")
 
 router.post("/employee", createEmployee)
 router.get("/employee", listEmployee)

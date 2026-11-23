@@ -1,5 +1,5 @@
 const express = require("express");
-const app = express();
+const router = express.Router();
 
 const {
     getlistBillandtaxcredit,
@@ -10,10 +10,14 @@ const {
     postinvoices
 } = require("../../modules/sales-billing/sales-billing.controller.js"); 
 
+
+//Orders
 router.post("/orders", postAddOrder);          
 router.get("/orders", getlistorders);        
 router.put("/orders/:id", putOrderUpdate);       
 router.delete("/orders/:id", deleteOrders);
+
+//Invoices
 router.post("/invoices/:type", postinvoices); 
 router.get("/invoices", getlistBillandtaxcredit);     
 

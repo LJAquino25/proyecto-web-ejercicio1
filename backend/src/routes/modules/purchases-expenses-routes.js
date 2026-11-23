@@ -9,7 +9,7 @@ const {
   postAddPurchaseInvoice,
   postAddExpense,
   getExpenses
-} = require("../../controller/module-purchases-expenses/purchases-expenses-controller.js");
+} = require("../../modules/purchases-expenses/purchases-expenses.controller.js");
 
 // Suppliers
 router.post("/supplier", postAddSupplier);

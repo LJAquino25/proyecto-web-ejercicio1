@@ -40,7 +40,6 @@ const parseOptionalPositiveInt = (value) => {
     return Number.isInteger(num) && num > 0 ? num : NaN;
 };
 
-
 const normalizeOrderItems = (orderItems) => {
     const normalized = [];
     for (const item of orderItems) {
@@ -358,6 +357,11 @@ const postinvoices = async (req, res) => {
             ...result
         });
     } catch (error) {
+        if (error.code === "NO_OPEN_CASH_SESSION") {
+            return res.status(409).json({
+                message: "No hay un turno de caja abierto"
+            });
+        }
         if (error.code === "23505") {
             return res.status(409).json({
                 message:
@@ -370,7 +374,6 @@ const postinvoices = async (req, res) => {
         });
     }
 };
-
 
 //Get Api Invoices
 const getlistBillandtaxcredit = async (req, res) => {
@@ -401,4 +404,4 @@ module.exports = {
     postinvoices,
     deleteOrders,
     putOrderUpdate
-}
+};

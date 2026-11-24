@@ -11,8 +11,8 @@ const pool = new Pool({
     port: process.env.DB_PORT,
 });
 
-pool.on("connect", () => {
+/*pool.on("connect", () => {
     console.log("Conexion establecida con la base de datos")
-});
+});*/
 
 module.exports = pool;

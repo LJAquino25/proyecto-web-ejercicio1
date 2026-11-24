@@ -127,14 +127,8 @@ const postAddOrder = async (req, res) => {
 //Put Api Orders Id
 const putOrderUpdate = async (req, res) => {
     try {
-        const orderId = Number(req.params.id);
-        if (!Number.isInteger(orderId) || orderId <= 0) {
-            return res.status(400).json({
-                message: "The ID on the URL is not valid, try again"
-            });
-        }
-
         const {
+            orderId,
             branch_id,
             customer_id,
             employee_id,
@@ -143,6 +137,7 @@ const putOrderUpdate = async (req, res) => {
             orderItems
         } = req.body;
 
+        const numberOrderId = Number(orderId);
         const branchId =
             branch_id !== undefined ? Number(branch_id) : undefined;
         const customerId =
@@ -153,6 +148,12 @@ const putOrderUpdate = async (req, res) => {
             invoice_type !== undefined ? normalizeInvoiceType(invoice_type) : undefined;
         const orderStatus =
             status !== undefined ? String(status).trim().toUpperCase() : undefined;
+
+        if (!Number.isInteger(numberOrderId) || numberOrderId <= 0) {
+        return res.status(400).json({
+        message: "The ID is not valid, please try again"
+        });
+        }
 
         if (
             (branchId !== undefined && (!Number.isInteger(branchId) || branchId <= 0)) ||
@@ -177,12 +178,12 @@ const putOrderUpdate = async (req, res) => {
             if (!normalizedItems) {
                 return res.status(400).json({
                     message:
-                        "Each order item must have valid positive integer product_id and quantity"
+                        "Each order item must have valid and positive product_id and quantity"
                 });
             }
         }
 
-        const updatedOrder = await updateOrderInDb(orderId, {
+        const updatedOrder = await updateOrderInDb(numberOrderId, {
             branchId,
             customerId,
             employeeId,
@@ -220,10 +221,11 @@ const putOrderUpdate = async (req, res) => {
 //Delete Api Orders Id
 const deleteOrders = async (req, res) => {
     try {
-        const idToDelete = Number(req.params.id);
+        const {orderId} = req.body;
+        const idToDelete = Number(orderId);
         if (!Number.isInteger(idToDelete) || idToDelete <= 0) {
             return res.status(400).json({
-                message: "The ID on the URL is not valid, try again"
+                message: "The ID to delete is not valid, please try again"
             });
         }
 
@@ -271,7 +273,7 @@ const getlistorders = async (req, res) => {
 //Post Api Invoices Type
 const postinvoices = async (req, res) => {
     try {
-        const invoiceType = normalizeInvoiceType(req.params.type);
+        const invoiceType = normalizeInvoiceType(req.body.type);
 
         if (!invoiceType) {
             return res.status(400).json({
@@ -352,7 +354,7 @@ const postinvoices = async (req, res) => {
         }
 
         return res.status(201).json({
-            message: `${req.params.type} created successfully!`,
+            message: `${req.body.type} created successfully!`,
             invoiceType,
             ...result
         });

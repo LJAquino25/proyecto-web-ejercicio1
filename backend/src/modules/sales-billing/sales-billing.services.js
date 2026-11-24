@@ -1,5 +1,6 @@
-const pool = require("../config/config.js");
+const pool = require("../../config/config.js");
 const salesBillingRepo = require("./sales-billing.repo.js");
+const { registerSaleToOpenShift } = require("../cash-register/cash-register.services.js");
 
 const roundTwo = (value) => Number(Number(value).toFixed(2));
 
@@ -139,7 +140,7 @@ const createOrderInDb = async ({
         }
 
         const fullRow = await salesBillingRepo.getOrderById(createdOrderId, client);
-            
+
         await client.query("COMMIT");
 
         return mapRowToOrder(fullRow);
@@ -283,6 +284,38 @@ const createInvoiceInDb = async ({
         }
 
         const { subtotal, tax, total } = calculateOrderAmounts(detailRows, invoiceType);
+        const isCashPayment = paymentMethod === "CASH";
+
+        let resolvedCashSessionId = cashSessionId;
+        let cashIntegration = null;
+
+        if (isCashPayment) {
+            cashIntegration = await registerSaleToOpenShift({
+                amount: total,
+                paymentMethod
+            });
+
+            if (!cashIntegration.ok) {
+                await client.query("ROLLBACK");
+                const err = new Error("No hay un turno de caja abierto");
+                err.code = "NO_OPEN_CASH_SESSION";
+                throw err;
+            }
+
+            if (!resolvedCashSessionId && cashIntegration.shift?.id) {
+                resolvedCashSessionId = cashIntegration.shift.id;
+            }
+        } else if (paymentMethod) {
+            cashIntegration = await registerSaleToOpenShift({
+                amount: total,
+                paymentMethod
+            });
+
+            if (cashIntegration.ok && !resolvedCashSessionId && cashIntegration.shift?.id) {
+                resolvedCashSessionId = cashIntegration.shift.id;
+            }
+        }
+
         const nextOrderStatus = paymentMethod ? "PAID" : orderRows[0].status;
 
         const updatedOrder = await salesBillingRepo.updateOrderBilling(
@@ -306,7 +339,7 @@ const createInvoiceInDb = async ({
             paymentRecord = await salesBillingRepo.insertPayment(
                 {
                     orderId,
-                    cashSessionId,
+                    cashSessionId: resolvedCashSessionId,
                     method: paymentMethod,
                     gatewayReference,
                     amount: total
@@ -321,7 +354,10 @@ const createInvoiceInDb = async ({
             order: updatedOrder,
             document: documentRecord,
             payment: paymentRecord,
-            items: detailRows
+            items: detailRows,
+            cashRegister: cashIntegration?.ok
+                ? { updated: true, shiftId: cashIntegration.shift.id }
+                : { updated: false }
         };
     } catch (error) {
         await client.query("ROLLBACK");

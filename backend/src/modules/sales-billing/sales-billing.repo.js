@@ -1,4 +1,4 @@
-const pool = require("../config/config.js");
+const pool = require("../../config/config.js");
 
 const BASE_ORDER_QUERY = `
   SELECT

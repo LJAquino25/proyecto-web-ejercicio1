@@ -10,9 +10,71 @@ const createHttpError = (statusCode, message) => {
 const roundTwo = (value) => Number(Number(value).toFixed(2));
 const VALID_EXPENSE_CATEGORIES = ["BASIC_SERVICES", "RENT", "NET_SALARY"];
 
-// =====================================================
+const preparePurchaseItemsAndTotals = async (items, supplierId, client) => {
+  const preparedItems = [];
+
+  for (const rawItem of items) {
+    const quantity = Number(rawItem.quantity);
+    const unitCost = Number(rawItem.unitCost ?? rawItem.unit_cost);
+    const itemName = String(rawItem.name || "").trim();
+    const packagedProductId =
+      rawItem.packagedProductId || rawItem.packaged_product_id
+        ? Number(rawItem.packagedProductId || rawItem.packaged_product_id)
+        : null;
+    let supplyId =
+      rawItem.supplyId || rawItem.supply_id
+        ? Number(rawItem.supplyId || rawItem.supply_id)
+        : null;
+
+    if (
+      Number.isNaN(quantity) ||
+      quantity <= 0 ||
+      Number.isNaN(unitCost) ||
+      unitCost < 0 ||
+      (!supplyId && !packagedProductId && !itemName)
+    ) {
+      throw createHttpError(
+        400,
+        "Each item must include valid quantity > 0, unitCost >= 0, and supply/product info"
+      );
+    }
+
+    if (!packagedProductId && !supplyId) {
+      let supply = await purchasesExpensesRepo.findSupplyByName(itemName, client);
+      if (!supply) {
+        supply = await purchasesExpensesRepo.createSupply(
+          {
+            supplierId,
+            name: itemName,
+            unit: rawItem.unit || "UNIT"
+          },
+          client
+        );
+      }
+      supplyId = supply.id;
+    }
+
+    preparedItems.push({
+      supplyId,
+      packagedProductId,
+      quantity,
+      unitCost: roundTwo(unitCost),
+      lineSubtotal: roundTwo(quantity * unitCost)
+    });
+  }
+
+  const subtotal = roundTwo(
+    preparedItems.reduce((acc, item) => acc + item.lineSubtotal, 0)
+  );
+  const tax = roundTwo(subtotal * 0.13);
+  const total = roundTwo(subtotal + tax);
+
+  return { preparedItems, subtotal, tax, total };
+};
+
+
 // SUPPLIERS
-// =====================================================
+
 const addSupplier = async ({ name, phone = null }) => {
   const cleanName = String(name || "").trim();
   if (!cleanName) {
@@ -34,9 +96,9 @@ const listSuppliers = async () => {
   return await purchasesExpensesRepo.getAllSuppliers();
 };
 
-// =====================================================
+
 // PURCHASE ORDERS
-// =====================================================
+
 const addPurchaseOrder = async ({
   supplierId,
   branchId = 1,
@@ -69,60 +131,8 @@ const addPurchaseOrder = async ({
       throw createHttpError(404, `Supplier with ID ${parsedSupplierId} not found`);
     }
 
-    const preparedItems = [];
-    for (const rawItem of items) {
-      const quantity = Number(rawItem.quantity);
-      const unitCost = Number(rawItem.unitCost ?? rawItem.unit_cost);
-      const itemName = String(rawItem.name || "").trim();
-      const packagedProductId = rawItem.packagedProductId || rawItem.packaged_product_id
-        ? Number(rawItem.packagedProductId || rawItem.packaged_product_id)
-        : null;
-      let supplyId = rawItem.supplyId || rawItem.supply_id
-        ? Number(rawItem.supplyId || rawItem.supply_id)
-        : null;
-
-      if (
-        Number.isNaN(quantity) ||
-        quantity <= 0 ||
-        Number.isNaN(unitCost) ||
-        unitCost < 0 ||
-        (!supplyId && !packagedProductId && !itemName)
-      ) {
-        throw createHttpError(
-          400,
-          "Each item must include valid quantity > 0, unitCost >= 0, and supply/product info"
-        );
-      }
-
-      if (!packagedProductId && !supplyId) {
-        let supply = await purchasesExpensesRepo.findSupplyByName(itemName, client);
-        if (!supply) {
-          supply = await purchasesExpensesRepo.createSupply(
-            {
-              supplierId: parsedSupplierId,
-              name: itemName,
-              unit: rawItem.unit || "UNIT"
-            },
-            client
-          );
-        }
-        supplyId = supply.id;
-      }
-
-      preparedItems.push({
-        supplyId,
-        packagedProductId,
-        quantity,
-        unitCost: roundTwo(unitCost),
-        lineSubtotal: roundTwo(quantity * unitCost)
-      });
-    }
-
-    const subtotal = roundTwo(
-      preparedItems.reduce((acc, item) => acc + item.lineSubtotal, 0)
-    );
-    const tax = roundTwo(subtotal * 0.13);
-    const total = roundTwo(subtotal + tax);
+    const { preparedItems, subtotal, tax, total } =
+      await preparePurchaseItemsAndTotals(items, parsedSupplierId, client);
 
     const orderDocNum = `ORD-${Date.now()}`;
 
@@ -183,9 +193,8 @@ const listPurchaseOrders = async (statusFilter = null) => {
   return orders.filter((o) => o.order_status === normalized);
 };
 
-// =====================================================
-// PURCHASE INVOICES (Ingreso a Inventario + Cuentas por Pagar)
-// =====================================================
+// PURCHASE INVOICES 
+
 const addPurchaseInvoice = async ({
   purchaseOrderId = null,
   supplierId,
@@ -229,60 +238,8 @@ const addPurchaseInvoice = async ({
       throw createHttpError(404, `Supplier with ID ${parsedSupplierId} not found`);
     }
 
-    const preparedItems = [];
-    for (const rawItem of items) {
-      const quantity = Number(rawItem.quantity);
-      const unitCost = Number(rawItem.unitCost ?? rawItem.unit_cost);
-      const itemName = String(rawItem.name || "").trim();
-      const packagedProductId = rawItem.packagedProductId || rawItem.packaged_product_id
-        ? Number(rawItem.packagedProductId || rawItem.packaged_product_id)
-        : null;
-      let supplyId = rawItem.supplyId || rawItem.supply_id
-        ? Number(rawItem.supplyId || rawItem.supply_id)
-        : null;
-
-      if (
-        Number.isNaN(quantity) ||
-        quantity <= 0 ||
-        Number.isNaN(unitCost) ||
-        unitCost < 0 ||
-        (!supplyId && !packagedProductId && !itemName)
-      ) {
-        throw createHttpError(
-          400,
-          "Each item must include valid quantity > 0, unitCost >= 0, and supply/product info"
-        );
-      }
-
-      if (!packagedProductId && !supplyId) {
-        let supply = await purchasesExpensesRepo.findSupplyByName(itemName, client);
-        if (!supply) {
-          supply = await purchasesExpensesRepo.createSupply(
-            {
-              supplierId: parsedSupplierId,
-              name: itemName,
-              unit: rawItem.unit || "UNIT"
-            },
-            client
-          );
-        }
-        supplyId = supply.id;
-      }
-
-      preparedItems.push({
-        supplyId,
-        packagedProductId,
-        quantity,
-        unitCost: roundTwo(unitCost),
-        lineSubtotal: roundTwo(quantity * unitCost)
-      });
-    }
-
-    const subtotal = roundTwo(
-      preparedItems.reduce((acc, item) => acc + item.lineSubtotal, 0)
-    );
-    const tax = roundTwo(subtotal * 0.13);
-    const total = roundTwo(subtotal + tax);
+    const { preparedItems, subtotal, tax, total } =
+      await preparePurchaseItemsAndTotals(items, parsedSupplierId, client);
 
     let invoiceRecord;
     if (purchaseOrderId) {
@@ -414,9 +371,9 @@ const addPurchaseInvoice = async ({
   }
 };
 
-// =====================================================
+
 // GENERAL EXPENSES
-// =====================================================
+
 const addExpense = async ({
   branchId = 1,
   employeeId = 1,

@@ -1,8 +1,7 @@
 const pool = require("../../config/config.js");
 
-// =====================================================
 // SUPPLIERS
-// =====================================================
+
 const findSupplierByName = async (name, db = pool) => {
   const result = await db.query(
     "SELECT id, name, phone FROM supplier WHERE LOWER(name) = LOWER($1)",
@@ -34,9 +33,8 @@ const getAllSuppliers = async (db = pool) => {
   return result.rows;
 };
 
-// =====================================================
 // SUPPLIES & INVENTORY HELPERS
-// =====================================================
+
 const findSupplyByName = async (name, db = pool) => {
   const result = await db.query(
     "SELECT id, supplier_id, name, unit FROM supply WHERE LOWER(name) = LOWER($1)",
@@ -96,9 +94,8 @@ const createInventoryMovement = async (
   return result.rows[0];
 };
 
-// =====================================================
 // PURCHASES (ORDERS & INVOICES)
-// =====================================================
+
 const createPurchase = async (
   {
     branchId,
@@ -245,9 +242,8 @@ const createAccountPayable = async (
   return result.rows[0];
 };
 
-// =====================================================
-// GENERAL EXPENSES (Persistidos en cash_movement)
-// =====================================================
+// GENERAL EXPENSES 
+
 const getOrCreateActiveCashSession = async ({ branchId, employeeId }, db = pool) => {
   const openSession = await db.query(
     `SELECT cs.id

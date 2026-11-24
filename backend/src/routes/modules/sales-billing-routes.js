@@ -14,11 +14,11 @@ const {
 //Orders
 router.post("/orders", postAddOrder);          
 router.get("/orders", getlistorders);        
-router.put("/orders/:id", putOrderUpdate);       
-router.delete("/orders/:id", deleteOrders);
+router.put("/orders", putOrderUpdate);       
+router.delete("/orders", deleteOrders);
 
 //Invoices
-router.post("/invoices/:type", postinvoices); 
+router.post("/invoices", postinvoices); 
 router.get("/invoices", getlistBillandtaxcredit);     
 
 module.exports = router;

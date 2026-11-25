@@ -4,14 +4,14 @@ const { registerSaleToOpenShift } = require("../cash-register/cash-register.serv
 
 const roundTwo = (value) => Number(Number(value).toFixed(2));
 
-const calculateOrderAmounts = (items, invoiceType) => {
-    const rawSubtotal = items.reduce(
+const calculateOrderAmounts = (items) => {
+    const rawTotal = items.reduce(
         (acc, item) => acc + Number(item.unit_price) * Number(item.quantity),
         0
     );
-    const subtotal = roundTwo(rawSubtotal);
-    const tax = invoiceType === "TAX_CREDIT" ? roundTwo(subtotal * 0.13) : 0;
-    const total = roundTwo(subtotal + tax);
+    const total = roundTwo(rawTotal);
+    const tax = roundTwo((total * 13) / 113);
+    const subtotal = roundTwo(total - tax);
 
     return { subtotal, tax, total };
 };
@@ -118,7 +118,7 @@ const createOrderInDb = async ({
             };
         });
 
-        const { subtotal, tax, total } = calculateOrderAmounts(pricedItems, invoiceType);
+        const { subtotal, tax, total } = calculateOrderAmounts(pricedItems);
 
         const createdOrder = await salesBillingRepo.insertOrder(
             { branchId, customerId, employeeId, invoiceType, status, subtotal, tax, total },
@@ -219,7 +219,7 @@ const updateOrderInDb = async (
             itemsForCalc = await salesBillingRepo.getOrderDetailsByOrderId(orderId, client);
         }
 
-        const { subtotal, tax, total } = calculateOrderAmounts(itemsForCalc, nextInvoiceType);
+        const { subtotal, tax, total } = calculateOrderAmounts(itemsForCalc);
 
         await salesBillingRepo.updateOrder(
             {
@@ -283,7 +283,7 @@ const createInvoiceInDb = async ({
             return { emptyOrder: true };
         }
 
-        const { subtotal, tax, total } = calculateOrderAmounts(detailRows, invoiceType);
+        const { subtotal, tax, total } = calculateOrderAmounts(detailRows);
         const isCashPayment = paymentMethod === "CASH";
 
         let resolvedCashSessionId = cashSessionId;

@@ -2,7 +2,6 @@ import { Link } from 'react-router-dom'
 import {
   ArrowRight,
   Flower2,
-  Sparkles,
   Coffee,
   Utensils,
   CakeSlice,
@@ -64,7 +63,7 @@ function HomePage() {
 
           <img
             className="hero-image"
-            src="https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=1000&q=85"
+            src="https://i.pinimg.com/1200x/41/a8/d2/41a8d2472125e570cca6be8c040eac98.jpg"
             alt="Ambiente de cafetería"
           />
 

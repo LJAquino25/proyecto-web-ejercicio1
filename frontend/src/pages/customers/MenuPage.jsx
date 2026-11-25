@@ -205,7 +205,6 @@ function MenuPage() {
           </Link>
 
           <span className="menu-label">
-            <Sparkles size={16} />
             CATÁLOGO DEL RESTAURANTE
           </span>
 

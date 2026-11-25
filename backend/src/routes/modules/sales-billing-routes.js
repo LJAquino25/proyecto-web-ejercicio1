@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const { requireEmployee, requireAdmin } = require("../../middleware/authorization.middleware.js");
 
 const {
     getlistBillandtaxcredit,
@@ -8,7 +9,7 @@ const {
     getlistorders,
     deleteOrders,
     postinvoices
-} = require("../../modules/sales-billing/sales-billing.controller.js"); 
+} = require("../../modules/sales-billing/sales-billing.controller.js");
 
 
 //Orders
@@ -19,6 +20,6 @@ router.delete("/orders", deleteOrders);
 
 //Invoices
 router.post("/invoices", postinvoices); 
-router.get("/invoices", getlistBillandtaxcredit);     
+router.get("/invoices", requireEmployee, getlistBillandtaxcredit);     
 
 module.exports = router;

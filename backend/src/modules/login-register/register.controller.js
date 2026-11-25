@@ -19,7 +19,8 @@ const createCustomer = async (req, res) => {
 
 const editCustomer = async (req, res) => {
     try {
-        const { id, full_name, email, phone, address } = req.body;
+        const { full_name, email, phone, address } = req.body;
+        const { id } = req.user;
         const updateCustomer = await service.editCustomer({ id, full_name, email, phone, address })
         return res.status(201).json({
             message: "Customer updated successfully",
@@ -35,7 +36,7 @@ const editCustomer = async (req, res) => {
 
 const deleteCustomer = async (req, res) => {
     try {
-        const { id } = req.body;
+        const { id } = req.user;
         const removeCustomer = await service.deleteCustomer({ id })
         return res.status(201).json({
             message: "Customer successfully deleted",
@@ -51,7 +52,7 @@ const deleteCustomer = async (req, res) => {
 
 const listCustomer = async (req, res) => {
     try {
-        const { id } = req.body;
+        const { id } = req.user;
         const listCustomer = await service.listCustomer({ id });
         return res.status(201).json({
             message: "List of customers",

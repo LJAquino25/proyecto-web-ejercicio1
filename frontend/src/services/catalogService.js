@@ -4,6 +4,14 @@ export async function getCatalog() {
   return apiRequest('/inventory/catalog')
 }
 
+export async function getBranches() {
+  const data = await apiRequest('/branches')
+  if (!Array.isArray(data?.branches)) {
+    throw new Error('La respuesta de sucursales no es válida.')
+  }
+  return data.branches
+}
+
 export async function createOrder({
   branchId = 1,
   invoiceType = 'NORMAL',

@@ -12,7 +12,12 @@ import {
   Sparkles,
   Utensils,
 } from 'lucide-react'
-import { createInvoice, createOrder, getCatalog } from '../../services/catalogService'
+import {
+  createInvoice,
+  createOrder,
+  getBranches,
+  getCatalog,
+} from '../../services/catalogService'
 import { getSession } from '../../services/authService'
 import '../../styles/MenuPage.css'
 
@@ -20,12 +25,6 @@ const FILTERS = [
   { key: 'ALL', label: 'Todos' },
   { key: 'PREPARED', label: 'Producto elaborado' },
   { key: 'PACKAGED', label: 'Empaquetado' },
-]
-
-const BRANCHES = [
-  { id: 1, name: 'Sucursal Central' },
-  { id: 2, name: 'Sucursal Escalón' },
-  { id: 3, name: 'Sucursal Santa Elena' },
 ]
 
 const EMPTY_TAX_CREDIT = {
@@ -49,6 +48,7 @@ function MenuPage() {
   const initialType = normalizeFilter(searchParams.get('type'))
 
   const [products, setProducts] = useState([])
+  const [branches, setBranches] = useState([])
   const [selectedType, setSelectedType] = useState(initialType)
   const [searchTerm, setSearchTerm] = useState('')
   const [cart, setCart] = useState(() => {
@@ -79,7 +79,7 @@ function MenuPage() {
     sessionStorage.removeItem(PENDING_CART_KEY)
     return []
   })
-  const [branchId, setBranchId] = useState(1)
+  const [branchId, setBranchId] = useState('')
   const [invoiceType, setInvoiceType] = useState('NORMAL')
   const [taxCreditData, setTaxCreditData] = useState(EMPTY_TAX_CREDIT)
 
@@ -107,9 +107,13 @@ function MenuPage() {
       setLoading(true)
       setErrorMsg('')
       try {
-        const data = await getCatalog()
+        const [data, branchData] = await Promise.all([
+          getCatalog(),
+          getBranches(),
+        ])
         if (active) {
           setProducts(Array.isArray(data) ? data : [])
+          setBranches(branchData)
         }
       } catch (error) {
         if (active) {
@@ -215,6 +219,11 @@ function MenuPage() {
       navigate('/login', {
         state: { requiresCustomer: true },
       })
+      return
+    }
+
+    if (!branches.some((branch) => Number(branch.id) === Number(branchId))) {
+      setErrorMsg('Seleccioná una sucursal disponible para recoger tu pedido.')
       return
     }
 
@@ -417,14 +426,21 @@ function MenuPage() {
                   <span>Sucursal</span>
                   <select
                     value={branchId}
-                    onChange={(e) => setBranchId(Number(e.target.value))}
+                    onChange={(e) => setBranchId(e.target.value)}
                   >
-                    {BRANCHES.map((branch) => (
+                    <option value="" disabled>
+                      Seleccioná una sucursal
+                    </option>
+                    {branches.map((branch) => (
                       <option key={branch.id} value={branch.id}>
                         {branch.name}
+                        {branch.address ? ` — ${branch.address}` : ''}
                       </option>
                     ))}
                   </select>
+                  {branches.length === 0 && (
+                    <small>No hay sucursales registradas en la base de datos.</small>
+                  )}
                 </label>
 
                 <label className="menu-cart-field">
@@ -567,7 +583,7 @@ function MenuPage() {
                   type="button"
                   className="menu-confirm-btn"
                   onClick={handleConfirmOrder}
-                  disabled={submitting}
+                  disabled={submitting || branches.length === 0 || !branchId}
                 >
                   {submitting ? 'Enviando pedido...' : 'Confirmar pedido'}
                 </button>

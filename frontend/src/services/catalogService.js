@@ -12,6 +12,22 @@ export async function getBranches() {
   return data.branches
 }
 
+export async function getSalesOrders() {
+  const data = await apiRequest('/sales/orders')
+  if (!Array.isArray(data?.orders)) {
+    throw new Error('La respuesta de pedidos no es válida.')
+  }
+  return data.orders
+}
+
+export async function getSalesInvoices() {
+  const data = await apiRequest('/sales/invoices')
+  if (!Array.isArray(data?.invoices)) {
+    throw new Error('La respuesta de facturas no es válida.')
+  }
+  return data.invoices
+}
+
 export async function createOrder({
   branchId = 1,
   invoiceType = 'NORMAL',
@@ -39,7 +55,7 @@ export async function createInvoice({
   business_line = null,
   address = null,
 }) {
-  return apiRequest('/invoices', {
+  return apiRequest('/sales/invoices', {
     method: 'POST',
     body: JSON.stringify({
       orderId,

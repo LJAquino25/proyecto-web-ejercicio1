@@ -192,7 +192,7 @@ function MenuPage() {
     [cart]
   )
 
-  const subtotal = useMemo(
+  const total = useMemo(
     () =>
       Number(
         cart
@@ -203,13 +203,13 @@ function MenuPage() {
   )
 
   const tax = useMemo(
-    () => (invoiceType === 'TAX_CREDIT' ? Number((subtotal * 0.13).toFixed(2)) : 0),
-    [subtotal, invoiceType]
+    () => Number(((total * 13) / 113).toFixed(2)),
+    [total]
   )
 
-  const total = useMemo(
-    () => Number((subtotal + tax).toFixed(2)),
-    [subtotal, tax]
+  const subtotal = useMemo(
+    () => Number((total - tax).toFixed(2)),
+    [total, tax]
   )
 
   const handleConfirmOrder = async () => {
@@ -450,7 +450,7 @@ function MenuPage() {
                     onChange={(e) => setInvoiceType(e.target.value)}
                   >
                     <option value="NORMAL">Factura (Consumidor final)</option>
-                    <option value="TAX_CREDIT">Crédito fiscal (+13% IVA)</option>
+                    <option value="TAX_CREDIT">Crédito fiscal</option>
                   </select>
                 </label>
 
@@ -565,15 +565,13 @@ function MenuPage() {
 
               <div className="menu-cart-summary">
                 <div className="menu-summary-row">
-                  <span>Subtotal</span>
+                  <span>Subtotal sin IVA</span>
                   <span>${subtotal.toFixed(2)}</span>
                 </div>
-                {invoiceType === 'TAX_CREDIT' && (
-                  <div className="menu-summary-row">
-                    <span>IVA (13%)</span>
-                    <span>${tax.toFixed(2)}</span>
-                  </div>
-                )}
+                <div className="menu-summary-row">
+                  <span>IVA incluido (13%)</span>
+                  <span>${tax.toFixed(2)}</span>
+                </div>
                 <div className="menu-summary-total">
                   <span>Total</span>
                   <strong>${total.toFixed(2)}</strong>
@@ -583,7 +581,7 @@ function MenuPage() {
                   type="button"
                   className="menu-confirm-btn"
                   onClick={handleConfirmOrder}
-                  disabled={submitting || branches.length === 0 || !branchId}
+                  disabled={submitting}
                 >
                   {submitting ? 'Enviando pedido...' : 'Confirmar pedido'}
                 </button>

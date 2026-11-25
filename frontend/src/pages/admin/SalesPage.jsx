@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -8,112 +8,94 @@ import {
   Clock,
   Receipt,
   Search,
-  Eye
+  Eye,
+  X
 } from 'lucide-react'
 
+import {
+  createInvoice,
+  createOrder,
+  getSalesInvoices,
+  getSalesOrders
+} from '../../services/catalogService'
 import '../../styles/InventoryPage.css'
 import '../../styles/SalesPage.css'
 import OrderForm from '../../components/admin/OrderForm'
 import InvoiceForm from '../../components/admin/InvoiceForm'
 
-const ORDERS = [
-  {
-    id: 1,
-    customer: 'Consumidor final',
-    date: '2026-11-25',
-    total: 12.50,
-    status: 'COMPLETED'
-  },
-  {
-    id: 2,
-    customer: 'María López',
-    date: '2026-11-25',
-    total: 8.75,
-    status: 'PENDING'
-  },
-  {
-    id: 3,
-    customer: 'Carlos Pérez',
-    date: '2026-11-25',
-    total: 24.00,
-    status: 'PREPARING'
-  },
-  {
-    id: 4,
-    customer: 'Consumidor final',
-    date: '2026-11-25',
-    total: 6.50,
-    status: 'COMPLETED'
-  }
-]
-
-const INVOICES = [
-  {
-    id: 1,
-    customer: 'Consumidor final',
-    type: 'CF',
-    date: '2026-11-25',
-    total: 12.50
-  },
-  {
-    id: 2,
-    customer: 'Empresa de ejemplo',
-    type: 'CCF',
-    date: '2026-11-25',
-    total: 24.00
-  },
-  {
-    id: 3,
-    customer: 'Consumidor final',
-    type: 'CF',
-    date: '2026-11-25',
-    total: 6.50
-  }
-]
-
 const STATUS_LABELS = {
-  PENDING: 'Pendiente',
-  PREPARING: 'En preparación',
-  COMPLETED: 'Completado',
+  CART: 'Pendiente',
+  PAID: 'Pagado',
+  IN_PREPARATION: 'En preparación',
+  DELIVERED: 'Entregado',
   CANCELLED: 'Cancelado'
 }
 
 const INVOICE_LABELS = {
-  CF: 'Consumidor final',
-  CCF: 'Crédito fiscal'
+  NORMAL: 'Consumidor final',
+  TAX_CREDIT: 'Crédito fiscal'
 }
+
+const formatDate = value => {
+  if (!value) return '—'
+  const date = new Date(value)
+  return Number.isNaN(date.getTime())
+    ? '—'
+    : new Intl.DateTimeFormat('es-SV', {
+        dateStyle: 'medium',
+        timeStyle: 'short'
+      }).format(date)
+}
+
+const formatId = id => `#${String(id).padStart(3, '0')}`
+
+const formatCustomer = customerId =>
+  customerId ? `Cliente #${customerId}` : 'Consumidor final'
 
 function SalesPage() {
   const [activeTab, setActiveTab] = useState('orders')
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('ALL')
   const [typeFilter, setTypeFilter] = useState('ALL')
+  const [orders, setOrders] = useState([])
+  const [invoices, setInvoices] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
+  const [isOrderFormOpen, setIsOrderFormOpen] = useState(false)
+  const [isInvoiceFormOpen, setIsInvoiceFormOpen] = useState(false)
+  const [selectedRecord, setSelectedRecord] = useState(null)
 
-  const totalSales = INVOICES.reduce(
-    (total, invoice) => total + invoice.total,
+  const loadData = useCallback(async () => {
+    setLoadError('')
+    try {
+      const [orderData, invoiceData] = await Promise.all([
+        getSalesOrders(),
+        getSalesInvoices()
+      ])
+      setOrders(orderData)
+      setInvoices(invoiceData)
+    } catch (error) {
+      setLoadError(error.message || 'No se pudieron cargar las ventas.')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
+
+  const totalSales = invoices.reduce(
+    (total, invoice) => total + Number(invoice.total || 0),
     0
   )
 
-  const pendingOrders = ORDERS.filter(
-    order => order.status === 'PENDING'
-  ).length
+  const pendingOrders = orders.filter(order => order.status === 'CART').length
 
-
-  const [isOrderFormOpen, setIsOrderFormOpen] = useState(false)
-
-const toggleOrderForm = () => {
-  setIsOrderFormOpen(previous => !previous)
-}
-
-        const [isInvoiceFormOpen, setIsInvoiceFormOpen] = useState(false)
-
-const toggleInvoiceForm = () => {
-  setIsInvoiceFormOpen(previous => !previous)
-}
   const statistics = [
     {
       label: 'Pedidos registrados',
-      value: ORDERS.length,
+      value: orders.length,
       icon: ShoppingCart,
       color: 'blue'
     },
@@ -136,35 +118,60 @@ const toggleInvoiceForm = () => {
     setSearchTerm('')
     setStatusFilter('ALL')
     setTypeFilter('ALL')
+    setSelectedRecord(null)
   }
 
-  const formatId = id => `#${String(id).padStart(3, '0')}`
+  const filteredOrders = useMemo(() => {
+    const search = searchTerm.trim().toLowerCase()
+    return orders.filter(order => {
+      const matchesSearch =
+        formatCustomer(order.customerId).toLowerCase().includes(search) ||
+        formatId(order.id).toLowerCase().includes(search)
+      const matchesStatus =
+        statusFilter === 'ALL' || order.status === statusFilter
+      return matchesSearch && matchesStatus
+    })
+  }, [orders, searchTerm, statusFilter])
 
-  const filteredOrders = ORDERS.filter(order => {
-    const search = searchTerm.toLowerCase()
+  const filteredInvoices = useMemo(() => {
+    const search = searchTerm.trim().toLowerCase()
+    return invoices.filter(invoice => {
+      const matchesSearch =
+        formatCustomer(invoice.customerId).toLowerCase().includes(search) ||
+        formatId(invoice.documentNumber).toLowerCase().includes(search) ||
+        formatId(invoice.orderId).toLowerCase().includes(search)
+      const matchesType =
+        typeFilter === 'ALL' || invoice.documentType === typeFilter
+      return matchesSearch && matchesType
+    })
+  }, [invoices, searchTerm, typeFilter])
 
-    const matchesSearch =
-      order.customer.toLowerCase().includes(search) ||
-      formatId(order.id).includes(search)
+  const invoicedOrderIds = useMemo(
+    () => new Set(invoices.map(invoice => Number(invoice.orderId))),
+    [invoices]
+  )
 
-    const matchesStatus =
-      statusFilter === 'ALL' || order.status === statusFilter
+  const availableOrders = useMemo(
+    () =>
+      orders.filter(
+        order =>
+          order.status !== 'CANCELLED' &&
+          !invoicedOrderIds.has(Number(order.id))
+      ),
+    [orders, invoicedOrderIds]
+  )
 
-    return matchesSearch && matchesStatus
-  })
+  const handleCreateOrder = async payload => {
+    await createOrder(payload)
+    await loadData()
+    setIsOrderFormOpen(false)
+  }
 
-  const filteredInvoices = INVOICES.filter(invoice => {
-    const search = searchTerm.toLowerCase()
-
-    const matchesSearch =
-      invoice.customer.toLowerCase().includes(search) ||
-      formatId(invoice.id).includes(search)
-
-    const matchesType =
-      typeFilter === 'ALL' || invoice.type === typeFilter
-
-    return matchesSearch && matchesType
-  })
+  const handleCreateInvoice = async payload => {
+    await createInvoice(payload)
+    await loadData()
+    setIsInvoiceFormOpen(false)
+  }
 
   return (
     <section className="sales-page">
@@ -177,38 +184,31 @@ const toggleInvoiceForm = () => {
         <div>
           <span className="admin-eyebrow">OPERACIONES</span>
           <h1>Ventas y facturación</h1>
-          <p>
-            Administrá los pedidos y comprobantes del restaurante.
-          </p>
+          <p>Administrá los pedidos y comprobantes del restaurante.</p>
         </div>
 
-            <button
-  type="button"
-  className="inventory-primary-button"
-  onClick={
-    activeTab === 'orders'
-      ? toggleOrderForm
-      : toggleInvoiceForm
-  }
->
-  <Plus size={20} />
-  {activeTab === 'orders' ? 'Nuevo pedido' : 'Nueva factura'}
-</button>
+        <button
+          type="button"
+          className="inventory-primary-button"
+          onClick={() =>
+            activeTab === 'orders'
+              ? setIsOrderFormOpen(true)
+              : setIsInvoiceFormOpen(true)
+          }
+        >
+          <Plus size={20} />
+          {activeTab === 'orders' ? 'Nuevo pedido' : 'Nueva factura'}
+        </button>
       </div>
 
       <div className="inventory-stats">
         {statistics.map(stat => {
           const StatIcon = stat.icon
-
           return (
-            <article
-              className="inventory-stat-card"
-              key={stat.label}
-            >
+            <article className="inventory-stat-card" key={stat.label}>
               <span className={`inventory-stat-icon ${stat.color}`}>
                 <StatIcon size={24} />
               </span>
-
               <div>
                 <strong>{stat.value}</strong>
                 <span>{stat.label}</span>
@@ -227,7 +227,6 @@ const toggleInvoiceForm = () => {
           <ShoppingCart size={20} />
           Pedidos
         </button>
-
         <button
           type="button"
           className={`sales-tab ${activeTab === 'invoices' ? 'active' : ''}`}
@@ -245,7 +244,6 @@ const toggleInvoiceForm = () => {
               ? 'Registro de pedidos'
               : 'Registro de facturas'}
           </h2>
-
           <p>
             {activeTab === 'orders'
               ? 'Consultá los pedidos y su estado actual.'
@@ -253,13 +251,13 @@ const toggleInvoiceForm = () => {
           </p>
         </div>
 
+        {loadError && <p className="sales-page-feedback" role="alert">{loadError}</p>}
+
         <div className="inventory-filters sales-filters">
           <label className="inventory-field">
             <span>Buscar registro</span>
-
             <div className="inventory-search">
               <Search size={19} />
-
               <input
                 type="search"
                 placeholder="Buscar por número o cliente..."
@@ -272,38 +270,35 @@ const toggleInvoiceForm = () => {
           {activeTab === 'orders' ? (
             <label className="inventory-field">
               <span>Estado del pedido</span>
-
               <select
                 value={statusFilter}
                 onChange={event => setStatusFilter(event.target.value)}
               >
                 <option value="ALL">Todos los estados</option>
-
                 {Object.entries(STATUS_LABELS).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
+                  <option key={value} value={value}>{label}</option>
                 ))}
               </select>
             </label>
           ) : (
             <label className="inventory-field">
               <span>Tipo de comprobante</span>
-
               <select
                 value={typeFilter}
                 onChange={event => setTypeFilter(event.target.value)}
               >
                 <option value="ALL">Todos los tipos</option>
-                <option value="CF">Consumidor final</option>
-                <option value="CCF">Crédito fiscal</option>
+                <option value="NORMAL">Consumidor final</option>
+                <option value="TAX_CREDIT">Crédito fiscal</option>
               </select>
             </label>
           )}
         </div>
 
         <div className="inventory-table-wrapper">
-          {activeTab === 'orders' ? (
+          {loading ? (
+            <p className="inventory-empty">Cargando ventas y facturas...</p>
+          ) : activeTab === 'orders' ? (
             <table className="inventory-table sales-table">
               <thead>
                 <tr>
@@ -315,37 +310,31 @@ const toggleInvoiceForm = () => {
                   <th>Acciones</th>
                 </tr>
               </thead>
-
               <tbody>
                 {filteredOrders.map(order => (
                   <tr key={order.id}>
+                    <td><strong>{formatId(order.id)}</strong></td>
+                    <td>{formatCustomer(order.customerId)}</td>
+                    <td>{formatDate(order.createdAt)}</td>
+                    <td className="sales-total">${Number(order.total).toFixed(2)}</td>
                     <td>
-                      <strong>{formatId(order.id)}</strong>
-                    </td>
-                    <td>{order.customer}</td>
-                    <td>{order.date}</td>
-                    <td className="sales-total">
-                      ${order.total.toFixed(2)}
-                    </td>
-                    <td>
-                      <span className={`sales-status ${order.status.toLowerCase()}`}>
-                        {STATUS_LABELS[order.status]}
+                      <span className={`sales-status ${String(order.status).toLowerCase()}`}>
+                        {STATUS_LABELS[order.status] || order.status}
                       </span>
                     </td>
                     <td>
                       <button
                         type="button"
                         className="sales-detail-button"
-                        title="Ver pedido"
-                        aria-label="Ver pedido"
-                        disabled
+                        title="Ver productos del pedido"
+                        aria-label={`Ver pedido ${order.id}`}
+                        onClick={() => setSelectedRecord({ type: 'order', data: order })}
                       >
                         <Eye size={18} />
                       </button>
                     </td>
                   </tr>
                 ))}
-
                 {filteredOrders.length === 0 && (
                   <tr>
                     <td colSpan={6} className="inventory-empty">
@@ -367,37 +356,31 @@ const toggleInvoiceForm = () => {
                   <th>Acciones</th>
                 </tr>
               </thead>
-
               <tbody>
                 {filteredInvoices.map(invoice => (
-                  <tr key={invoice.id}>
+                  <tr key={`${invoice.documentType}-${invoice.orderId}`}>
+                    <td><strong>{formatId(invoice.documentNumber)}</strong></td>
+                    <td>{formatCustomer(invoice.customerId)}</td>
                     <td>
-                      <strong>{formatId(invoice.id)}</strong>
-                    </td>
-                    <td>{invoice.customer}</td>
-                    <td>
-                      <span className={`sales-invoice-type ${invoice.type.toLowerCase()}`}>
-                        {INVOICE_LABELS[invoice.type]}
+                      <span className={`sales-invoice-type ${invoice.documentType === 'NORMAL' ? 'cf' : 'ccf'}`}>
+                        {INVOICE_LABELS[invoice.documentType] || invoice.documentType}
                       </span>
                     </td>
-                    <td>{invoice.date}</td>
-                    <td className="sales-total">
-                      ${invoice.total.toFixed(2)}
-                    </td>
+                    <td>{formatDate(invoice.issuedAt)}</td>
+                    <td className="sales-total">${Number(invoice.total).toFixed(2)}</td>
                     <td>
                       <button
                         type="button"
                         className="sales-detail-button"
-                        title="Ver factura"
-                        aria-label="Ver factura"
-                        disabled
+                        title="Ver datos del comprobante"
+                        aria-label={`Ver factura ${invoice.documentNumber}`}
+                        onClick={() => setSelectedRecord({ type: 'invoice', data: invoice })}
                       >
                         <Eye size={18} />
                       </button>
                     </td>
                   </tr>
                 ))}
-
                 {filteredInvoices.length === 0 && (
                   <tr>
                     <td colSpan={6} className="inventory-empty">
@@ -410,21 +393,64 @@ const toggleInvoiceForm = () => {
           )}
         </div>
 
-                       <div className="inventory-panel-footer">
+        {selectedRecord && (
+          <section className="sales-detail-panel" aria-live="polite">
+            <div className="sales-detail-heading">
+              <h3>
+                {selectedRecord.type === 'order'
+                  ? `Detalle del pedido ${formatId(selectedRecord.data.id)}`
+                  : `Detalle de la factura ${formatId(selectedRecord.data.documentNumber)}`}
+              </h3>
+              <button
+                type="button"
+                className="sales-detail-close"
+                onClick={() => setSelectedRecord(null)}
+                aria-label="Cerrar detalle"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            {selectedRecord.type === 'order' ? (
+              <ul>
+                {(selectedRecord.data.items || []).map((item, index) => (
+                  <li key={`${item.productId}-${index}`}>
+                    {item.quantity} × {item.productName}
+                    <strong>${(Number(item.unitPrice) * Number(item.quantity)).toFixed(2)}</strong>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="sales-detail-fiscal">
+                <span>Pedido asociado: {formatId(selectedRecord.data.orderId)}</span>
+                {selectedRecord.data.taxCreditData && (
+                  <>
+                    <span>Razón social: {selectedRecord.data.taxCreditData.institutionName || '—'}</span>
+                    <span>NIT: {selectedRecord.data.taxCreditData.nit || '—'}</span>
+                    <span>NRC: {selectedRecord.data.taxCreditData.nrc || '—'}</span>
+                  </>
+                )}
+              </div>
+            )}
+          </section>
+        )}
+
+        <div className="inventory-panel-footer">
           {activeTab === 'orders'
-            ? `Mostrando ${filteredOrders.length} de ${ORDERS.length} pedidos`
-            : `Mostrando ${filteredInvoices.length} de ${INVOICES.length} facturas`}
+            ? `Mostrando ${filteredOrders.length} de ${orders.length} pedidos`
+            : `Mostrando ${filteredInvoices.length} de ${invoices.length} facturas`}
         </div>
       </section>
 
       <OrderForm
         isOpen={isOrderFormOpen}
-        toggle={toggleOrderForm}
+        toggle={() => setIsOrderFormOpen(false)}
+        onSubmit={handleCreateOrder}
       />
-
       <InvoiceForm
         isOpen={isInvoiceFormOpen}
-        toggle={toggleInvoiceForm}
+        toggle={() => setIsInvoiceFormOpen(false)}
+        onSubmit={handleCreateInvoice}
+        orders={availableOrders}
       />
     </section>
   )

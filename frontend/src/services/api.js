@@ -23,7 +23,12 @@ export async function apiRequest(endpoint, options = {}) {
   const data = isJson ? await response.json() : null
 
   if (!response.ok) {
-    const error = new Error(data?.message || `Error HTTP ${response.status}`)
+    const errorDetails =
+      typeof data?.error === 'string' && data.error !== data.message
+        ? data.error
+        : null
+    const message = [data?.message, errorDetails].filter(Boolean).join(': ')
+    const error = new Error(message || `Error HTTP ${response.status}`)
     error.status = response.status
     error.data = data
     throw error

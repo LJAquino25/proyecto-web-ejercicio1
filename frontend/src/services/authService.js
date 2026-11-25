@@ -31,3 +31,15 @@ export function getSession() {
   const accountType = localStorage.getItem('accountType')
   return token ? { token, accountType } : null
 }
+export function getCustomerIdFromToken() {
+  const token = localStorage.getItem('token')
+  const accountType = localStorage.getItem('accountType')
+  if (!token || accountType !== 'customer') return null
+
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    return Number.isInteger(payload.id) ? payload.id : null
+  } catch {
+    return null
+  }
+}

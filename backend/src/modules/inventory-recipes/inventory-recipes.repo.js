@@ -81,7 +81,7 @@ const getAllRecipes = async (db = pool) => {
 };
 
 const getCatalog = async (db = pool) => {
-  const result = await db.query("SELECT id, name, price FROM product");
+  const result = await db.query("SELECT id, name, price, product_type FROM product");
   return result.rows;
 };
 

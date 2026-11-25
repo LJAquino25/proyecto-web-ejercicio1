@@ -4,8 +4,7 @@ import {
   Flower2,
   Coffee,
   Utensils,
-  CakeSlice,
-  Heart
+  Sparkles
 } from 'lucide-react'
 
 import '../../styles/HomePage.css'
@@ -102,7 +101,7 @@ function HomePage() {
 
             return (
               <Link
-                to="/menu"
+                to={`/menu?type=${category.type}`}
                 key={category.name}
                 className={`category-card ${category.color}`}
               >

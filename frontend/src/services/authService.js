@@ -6,12 +6,25 @@ export async function loginUser({ email, password }) {
     body: JSON.stringify({ email, password }),
   })
 
-  if (data?.customer?.token) {
-    localStorage.setItem('token', data.customer.token)
-    localStorage.setItem('accountType', data.customer.accountType)
+  const accountType =
+    typeof data?.customer === 'string'
+      ? data.customer
+      : data?.accountType || data?.customer?.accountType || null
+
+  const role = data?.role || data?.employee?.role || null
+
+  if (accountType) {
+    localStorage.setItem('accountType', accountType)
+  }
+  if (role) {
+    localStorage.setItem('role', role)
   }
 
-  return data
+  return {
+    ...data,
+    accountType,
+    role,
+  }
 }
 
 export async function registerCustomer({ full_name, email, phone, address, password }) {
@@ -24,12 +37,14 @@ export async function registerCustomer({ full_name, email, phone, address, passw
 export function logoutUser() {
   localStorage.removeItem('token')
   localStorage.removeItem('accountType')
+  localStorage.removeItem('role')
 }
 
 export function getSession() {
-  const token = localStorage.getItem('token')
+
   const accountType = localStorage.getItem('accountType')
-  return token ? { token, accountType } : null
+  const role = localStorage.getItem('role')
+  return accountType ? { accountType, role } : null
 }
 export function getCustomerIdFromToken() {
   const token = localStorage.getItem('token')

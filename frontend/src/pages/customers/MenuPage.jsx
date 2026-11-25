@@ -12,7 +12,7 @@ import {
   Sparkles,
   Utensils,
 } from 'lucide-react'
-import { createOrder, getCatalog } from '../../services/catalogService'
+import { createInvoice, createOrder, getCatalog } from '../../services/catalogService'
 import { getCustomerIdFromToken } from '../../services/authService'
 import '../../styles/MenuPage.css'
 
@@ -27,6 +27,14 @@ const BRANCHES = [
   { id: 2, name: 'Sucursal Escalón' },
   { id: 3, name: 'Sucursal Santa Elena' },
 ]
+
+const EMPTY_TAX_CREDIT = {
+  nit: '',
+  nrc: '',
+  institution_name: '',
+  business_line: '',
+  address: '',
+}
 
 function normalizeFilter(rawType) {
   const upper = String(rawType || '').trim().toUpperCase()
@@ -43,6 +51,7 @@ function MenuPage() {
   const [cart, setCart] = useState([])
   const [branchId, setBranchId] = useState(1)
   const [invoiceType, setInvoiceType] = useState('NORMAL')
+  const [taxCreditData, setTaxCreditData] = useState(EMPTY_TAX_CREDIT)
 
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -164,6 +173,19 @@ function MenuPage() {
   const handleConfirmOrder = async () => {
     if (cart.length === 0) return
 
+    if (invoiceType === 'TAX_CREDIT') {
+      if (
+        !taxCreditData.nit.trim() ||
+        !taxCreditData.nrc.trim() ||
+        !taxCreditData.institution_name.trim()
+      ) {
+        setErrorMsg(
+          'Completá NIT, NRC y nombre de la institución para crédito fiscal.'
+        )
+        return
+      }
+    }
+
     setSubmitting(true)
     setErrorMsg('')
     setOrderFeedback(null)
@@ -183,10 +205,30 @@ function MenuPage() {
         orderItems,
       })
 
+      let invoiceError = ''
+      if (invoiceType === 'TAX_CREDIT' && response?.order?.id) {
+        try {
+          await createInvoice({
+            orderId: response.order.id,
+            type: 'credito-fiscal',
+            nit: taxCreditData.nit.trim(),
+            nrc: taxCreditData.nrc.trim(),
+            institution_name: taxCreditData.institution_name.trim(),
+            business_line: taxCreditData.business_line.trim() || null,
+            address: taxCreditData.address.trim() || null,
+          })
+        } catch (invErr) {
+          invoiceError = invErr.message
+        }
+      }
+
       setCart([])
+      setTaxCreditData(EMPTY_TAX_CREDIT)
       setOrderFeedback({
         orderId: response?.order?.id,
         total: response?.order?.total ?? total,
+        invoiceType,
+        invoiceError,
       })
     } catch (error) {
       setErrorMsg(error.message || 'No se pudo crear el pedido.')
@@ -307,6 +349,9 @@ function MenuPage() {
               <div>
                 <strong>¡Pedido #{orderFeedback.orderId} registrado!</strong>
                 <span>Total: ${Number(orderFeedback.total).toFixed(2)}</span>
+                {orderFeedback.invoiceError && (
+                  <small>Comprobante pendiente: {orderFeedback.invoiceError}</small>
+                )}
               </div>
             </div>
           )}
@@ -342,6 +387,85 @@ function MenuPage() {
                     <option value="TAX_CREDIT">Crédito fiscal (+13% IVA)</option>
                   </select>
                 </label>
+
+                {invoiceType === 'TAX_CREDIT' && (
+                  <div className="menu-tax-credit-fields">
+                    <label className="menu-cart-field">
+                      <span>NIT *</span>
+                      <input
+                        type="text"
+                        placeholder="0614-000000-000-0"
+                        value={taxCreditData.nit}
+                        onChange={(e) =>
+                          setTaxCreditData((prev) => ({
+                            ...prev,
+                            nit: e.target.value,
+                          }))
+                        }
+                      />
+                    </label>
+
+                    <label className="menu-cart-field">
+                      <span>NRC *</span>
+                      <input
+                        type="text"
+                        placeholder="123456-7"
+                        value={taxCreditData.nrc}
+                        onChange={(e) =>
+                          setTaxCreditData((prev) => ({
+                            ...prev,
+                            nrc: e.target.value,
+                          }))
+                        }
+                      />
+                    </label>
+
+                    <label className="menu-cart-field">
+                      <span>Institución / Razón social *</span>
+                      <input
+                        type="text"
+                        placeholder="Nombre de la empresa o institución"
+                        value={taxCreditData.institution_name}
+                        onChange={(e) =>
+                          setTaxCreditData((prev) => ({
+                            ...prev,
+                            institution_name: e.target.value,
+                          }))
+                        }
+                      />
+                    </label>
+
+                    <label className="menu-cart-field">
+                      <span>Giro (opcional)</span>
+                      <input
+                        type="text"
+                        placeholder="Ej. Servicios de ingeniería"
+                        value={taxCreditData.business_line}
+                        onChange={(e) =>
+                          setTaxCreditData((prev) => ({
+                            ...prev,
+                            business_line: e.target.value,
+                          }))
+                        }
+                      />
+                    </label>
+
+                    <label className="menu-cart-field">
+                      <span>Dirección fiscal (opcional)</span>
+                      <input
+                        type="text"
+                        placeholder="Dirección de facturación"
+                        value={taxCreditData.address}
+                        onChange={(e) =>
+                          setTaxCreditData((prev) => ({
+                            ...prev,
+                            address: e.target.value,
+                          }))
+                        }
+                      />
+                    </label>
+                  </div>
+                )}
               </div>
 
               <ul className="menu-cart-list">

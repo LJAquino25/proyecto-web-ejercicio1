@@ -38,7 +38,7 @@ function LoginPage() {
 
     try {
       const data = await loginUser(formData)
-      const accountType = data?.customer?.accountType
+      const accountType = data?.accountType
 
       if (accountType === 'employee') {
         navigate('/staff')
@@ -220,7 +220,6 @@ function LoginPage() {
 
               </div>
 
-       
               <div className="auth-field">
 
                 <label htmlFor="login-password">
@@ -264,6 +263,7 @@ function LoginPage() {
                 </div>
 
               </div>
+
               <button
                 type="submit"
                 className="auth-submit"

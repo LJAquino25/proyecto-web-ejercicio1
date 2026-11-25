@@ -22,3 +22,28 @@ export async function createOrder({
     }),
   })
 }
+
+export async function createInvoice({
+  orderId,
+  type,
+  paymentMethod = null,
+  nit = null,
+  nrc = null,
+  institution_name = null,
+  business_line = null,
+  address = null,
+}) {
+  return apiRequest('/invoices', {
+    method: 'POST',
+    body: JSON.stringify({
+      orderId,
+      type,
+      paymentMethod,
+      nit,
+      nrc,
+      institution_name,
+      business_line,
+      address,
+    }),
+  })
+}

@@ -2,7 +2,6 @@
   padding: 0 4% 40px;
 }
 
-/* Hero section */
 .hero-section {
   position: relative;
   display: grid;
@@ -73,7 +72,6 @@
   box-shadow: 4px 8px 0 var(--color-text);
 }
 
-/* Decorative elements */
 .hero-flower {
   position: absolute;
   bottom: -65px;
@@ -90,7 +88,6 @@
   color: var(--color-yellow);
 }
 
-/* Hero image */
 .hero-image-wrapper {
   position: relative;
   z-index: 1;
@@ -128,7 +125,6 @@
   font-size: 30px;
 }
 
-/* Decorative banner */
 .decorative-banner {
   display: flex;
   align-items: center;
@@ -144,7 +140,6 @@
   letter-spacing: 2px;
 }
 
-/* Categories section */
 .categories-section {
   padding: 70px 0;
   text-align: center;
@@ -222,51 +217,6 @@
   border-radius: 50%;
 }
 
-/* Brand section */
-.brand-section {
-  position: relative;
-  padding: 60px 25px;
-  background: var(--color-yellow);
-  color: var(--color-fuchsia);
-  border-radius: 40px;
-  text-align: center;
-  overflow: hidden;
-}
-
-.brand-section h2 {
-  font-size: clamp(32px, 5vw, 65px);
-  margin: 20px 0;
-}
-
-.brand-section p {
-  color: var(--color-text);
-  font-size: 18px;
-  max-width: 500px;
-  margin: 0 auto 30px;
-}
-
-.brand-section .hero-button {
-  background: var(--color-cream);
-}
-
-.brand-flower-left,
-.brand-flower-right {
-  position: absolute;
-  opacity: 0.2;
-  pointer-events: none;
-}
-
-.brand-flower-left {
-  top: -35px;
-  left: -35px;
-}
-
-.brand-flower-right {
-  bottom: -35px;
-  right: -35px;
-}
-
-/* Responsive design */
 @media (max-width: 768px) {
   .hero-section {
     grid-template-columns: 1fr;

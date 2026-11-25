@@ -396,3 +396,35 @@
   opacity: 0.65;
   cursor: not-allowed;
 }
+
+.menu-page .menu-back-link {
+  padding: 8px 16px;
+  background: var(--color-cream);
+  color: var(--color-text);
+  border: 2px solid var(--color-text);
+  border-radius: var(--radius-pill);
+  transition: var(--transition);
+}
+
+.menu-page .menu-back-link:hover {
+  background: var(--color-yellow);
+  color: var(--color-text);
+}
+
+@media (min-width: 1100px) {
+  .menu-page .menu-search {
+    min-width: 320px;
+  }
+}
+
+.menu-header {
+  position: relative;
+  padding-top: 85px;
+}
+
+.menu-page .menu-back-link {
+  position: absolute;
+  top: 24px;
+  right: 36px;
+  margin-bottom: 0;
+}

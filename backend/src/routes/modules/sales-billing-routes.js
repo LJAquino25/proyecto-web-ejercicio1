@@ -13,13 +13,13 @@ const {
 
 
 //Orders
-router.post("/orders", postAddOrder);
-router.get("/orders", getlistorders);
-router.put("/orders/:id", putOrderUpdate);
-router.delete("/orders/:id", requireEmployee, deleteOrders);
+router.post("/orders", postAddOrder);          
+router.get("/orders", getlistorders);        
+router.put("/orders", putOrderUpdate);       
+router.delete("/orders", deleteOrders);
 
 //Invoices
-router.post("/invoices/:type", postinvoices);
-router.get("/invoices", getlistBillandtaxcredit);
+router.post("/invoices", postinvoices); 
+router.get("/invoices", requireEmployee, getlistBillandtaxcredit);     
 
 module.exports = router;

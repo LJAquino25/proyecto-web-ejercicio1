@@ -1,73 +1,73 @@
 import { Link } from 'react-router-dom'
-import {
-  ArrowRight,
-  Flower2,
-  Coffee,
-  Utensils,
-  Sparkles
-} from 'lucide-react'
+import { ArrowRight, ArrowUpRight } from 'lucide-react'
 
 import '../../styles/HomePage.css'
 
+const images = {
+  restaurant: 'https://i.pinimg.com/1200x/41/a8/d2/41a8d2472125e570cca6be8c040eac98.jpg',
+  food: 'https://i.pinimg.com/736x/10/50/ad/1050ada55e841e00767cf44eb641086e.jpg',
+  packaged: 'https://i.pinimg.com/736x/f0/45/c4/f045c4ec6acf887a6bca28465ea74508.jpg'
+}
+
 const categories = [
   {
-    name: 'Producto elaborado',
+    name: 'Elaborados',
     type: 'PREPARED',
-    description: 'Preparados al momento en nuestra cocina y barra con ingredientes frescos.',
-    icon: Utensils,
+    label: 'RECIÉN PREPARADOS',
+    description: 'De nuestra cocina y barra, directamente a tu mesa.',
+    image: images.food,
     color: 'yellow'
   },
   {
-    name: 'Empaquetado',
+    name: 'Empaquetados',
     type: 'PACKAGED',
-    description: 'Bebidas y productos listos para llevar o acompañar tu pedido.',
-    icon: Coffee,
+    label: 'LISTOS PARA DISFRUTAR',
+    description: 'Bebidas y antojitos para acompañar tu pedido.',
+    image: images.packaged,
     color: 'blue'
   }
 ]
+
 function HomePage() {
   return (
     <main className="home-page">
 
       <section className="hero-section">
 
-        <Flower2 className="hero-flower" size={180} />
-        <Sparkles className="hero-sparkles" size={65} />
-
         <div className="hero-content">
 
           <span className="hero-label">
-            <Flower2 size={18} />
-            RESTAURANTE SALVADOREÑO
+            ORÍGENES SV
           </span>
 
           <h1>
-            ¡La mejor <br />
-            comida<br />
-            <span>salvadoreña!</span>
+            ¡Qué rico<br />
+            sabe<br />
+            <span>lo nuestro!</span>
           </h1>
 
           <p>
-            Contamos con variedad de platos típicos, postres y café de diferentes tipos.
+            Platos típicos, postres y café.
+            Un pedacito de El Salvador en cada bocado.
           </p>
 
-          <Link to="/menu" className="hero-button">
-            Explorá el menú
-            <ArrowRight size={22} />
-          </Link>
+          <span className="hero-small-text">
+            HECHO AQUÍ, HECHO CON AMOR.
+          </span>
 
         </div>
 
-        <div className="hero-image-wrapper">
+        <div className="hero-collage">
 
-          <img
-            className="hero-image"
-            src="https://i.pinimg.com/1200x/41/a8/d2/41a8d2472125e570cca6be8c040eac98.jpg"
-            alt="Ambiente de cafetería"
-          />
+          <div className="hero-main-photo">
+
+            <img
+              src={images.restaurant}
+              alt="Ambiente de restaurante salvadoreño"
+            />
+          </div>
 
           <div className="hero-stamp">
-            <Flower2 size={30} />
             <span>100%</span>
             SABOR LOCAL
           </div>
@@ -76,50 +76,89 @@ function HomePage() {
 
       </section>
 
-      <section className="decorative-banner">
-        <Flower2 />
-        <span>HECHO CON AMOR</span>
-        <Sparkles />
-        <span>SABOR DE CASA</span>
-        <Flower2 />
-        <span>ORGULLO SALVADOREÑO</span>
-        <Sparkles />
-      </section>
-
       <section className="categories-section">
 
-        <span className="section-label">
-          PARA TODOS LOS GUSTOS
-        </span>
+        <div className="categories-heading">
 
-        <h2>¿Qué se te antoja hoy?</h2>
+          <h2>¿Qué se te antoja hoy?</h2>
 
-        <div className="category-grid ">
-
-          {categories.map((category) => {
-            const CategoryIcon = category.icon
-
-            return (
-              <Link
-                to={`/menu?type=${category.type}`}
-                key={category.name}
-                className={`category-card ${category.color}`}
-              >
-                <Sparkles className="category-decoration" />
-
-                <CategoryIcon size={65} strokeWidth={1.5} />
-
-                <h3>{category.name}</h3>
-                <p>{category.description}</p>
-
-                <span className="category-arrow">
-                  <ArrowRight />
-                </span>
-              </Link>
-            )
-          })}
+          <p>
+            Encontrá algo rico para cualquier momento del día.
+          </p>
 
         </div>
+
+        <div className="category-grid">
+
+          {categories.map((category) => (
+
+            <Link
+              to={`/menu?type=${category.type}`}
+              key={category.type}
+              className={`category-card ${category.color}`}
+            >
+
+              <div className="category-image-wrapper">
+
+                <img
+                  src={category.image}
+                  alt={category.name}
+                  loading="lazy"
+                />
+
+                <span className="category-tag">
+                  {category.label}
+                </span>
+
+              </div>
+
+              <div className="category-content">
+
+                <h3>{category.name}</h3>
+
+                <p>{category.description}</p>
+
+                <div className="category-action">
+
+                  <span>Ver productos</span>
+
+                  <span className="category-arrow">
+                    <ArrowUpRight size={24} />
+                  </span>
+
+                </div>
+
+              </div>
+
+            </Link>
+
+          ))}
+
+        </div>
+
+      </section>
+
+      <section className="home-closing">
+
+        <div className="closing-checker" />
+
+        <div className="closing-content">
+
+          <span>DE NUESTRA TIERRA, PARA TU MESA</span>
+
+          <h2>
+            Los buenos momentos<br />
+            empiezan con algo rico.
+          </h2>
+
+          <Link to="/menu" className="closing-button">
+            Ver menú completo
+            <ArrowRight size={20} />
+          </Link>
+
+        </div>
+
+        <div className="closing-checker" />
 
       </section>
 

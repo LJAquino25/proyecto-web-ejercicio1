@@ -1,0 +1,139 @@
+.purchases-page {
+  width: 100%;
+}
+
+.purchases-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.purchases-tabs .sales-tab {
+  padding: 14px 12px;
+  font-size: 13px;
+}
+
+.purchases-tabs .sales-tab svg {
+  flex-shrink: 0;
+}
+
+.purchases-filters {
+  grid-template-columns: 1.5fr 1fr;
+}
+
+.purchases-table {
+  min-width: 850px;
+}
+
+.purchases-table td:first-child {
+  font-weight: 800;
+}
+
+.purchase-money {
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.purchase-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.purchase-status.active,
+.purchase-status.received,
+.purchase-status.paid {
+  background: #e7f0e7;
+  color: #386348;
+}
+
+.purchase-status.pending {
+  background: var(--color-pink);
+  color: #9d1855;
+}
+
+.purchase-status.partial {
+  background: #f9e9a8;
+  color: #756019;
+}
+
+.purchase-status.inactive,
+.purchase-status.cancelled {
+  background: #f4f1e9;
+  color: #766b5f;
+}
+
+.purchase-status.overdue {
+  background: #f5d9d9;
+  color: #9c4545;
+}
+
+.purchase-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.purchase-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  color: var(--color-text);
+  border: 1px solid var(--color-text);
+  border-radius: 10px;
+  transition: var(--transition);
+}
+
+.purchase-action.view {
+  background: var(--color-blue);
+}
+
+.purchase-action.edit {
+  background: var(--color-yellow);
+}
+
+.purchase-action:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 2px 2px 0 var(--color-text);
+}
+
+.purchase-action:disabled {
+  cursor: not-allowed;
+}
+
+.purchases-page .inventory-table-wrapper {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.purchases-page .inventory-table-wrapper::-webkit-scrollbar {
+  display: none;
+}
+
+@media (max-width: 1200px) {
+  .purchases-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .purchases-filters {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .purchases-tabs .sales-tab {
+    flex-direction: column;
+    font-size: 12px;
+    gap: 8px;
+  }
+}

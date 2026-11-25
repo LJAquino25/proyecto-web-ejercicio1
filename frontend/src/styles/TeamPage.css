@@ -1,0 +1,203 @@
+.team-page {
+  width: 100%;
+}
+
+.team-tabs {
+  display: flex;
+  gap: 12px;
+}
+
+.team-filters.employees {
+  grid-template-columns: 1.3fr 1fr 1fr 0.8fr;
+}
+
+.team-filters.payroll {
+  grid-template-columns: 1.3fr 1fr 1fr;
+}
+
+.team-table {
+  min-width: 900px;
+}
+
+.payroll-table {
+  min-width: 1100px;
+}
+
+.team-employee {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.team-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 46px;
+  height: 46px;
+  border: 1px solid var(--color-text);
+  border-radius: 15px;
+  font-family: var(--font-heading);
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.team-avatar.pink {
+  background: var(--color-pink);
+}
+
+.team-avatar.yellow {
+  background: var(--color-yellow);
+}
+
+.team-avatar.blue {
+  background: var(--color-blue);
+}
+
+.team-employee-info {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.team-employee-info strong {
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.team-employee-info small {
+  color: #766b5f;
+  font-size: 12px;
+}
+
+.team-role {
+  display: inline-flex;
+  padding: 7px 12px;
+  background: #f4f1e9;
+  color: var(--color-text);
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.team-money {
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.team-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.team-status.active,
+.team-status.paid {
+  background: #e7f0e7;
+  color: #386348;
+}
+
+.team-status.inactive {
+  background: #f4f1e9;
+  color: #766b5f;
+}
+
+.team-status.pending {
+  background: var(--color-pink);
+  color: #9d1855;
+}
+
+.team-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.team-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  color: var(--color-text);
+  border: 1px solid var(--color-text);
+  border-radius: 10px;
+  transition: var(--transition);
+}
+
+.team-action.view {
+  background: var(--color-blue);
+}
+
+.team-action.edit {
+  background: var(--color-yellow);
+}
+
+.team-action:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 2px 2px 0 var(--color-text);
+}
+
+.team-action:disabled {
+  cursor: not-allowed;
+}
+
+.payroll-period {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.payroll-period small {
+  color: #766b5f;
+  font-size: 12px;
+}
+
+.payroll-net {
+  color: #386348;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.team-page .inventory-table-wrapper {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.team-page .inventory-table-wrapper::-webkit-scrollbar {
+  display: none;
+}
+
+.team-page a.inventory-primary-button {
+  text-decoration: none;
+}
+
+@media (max-width: 1200px) {
+  .team-filters.employees,
+  .team-filters.payroll {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .team-filters.employees,
+  .team-filters.payroll {
+    grid-template-columns: 1fr;
+  }
+
+  .team-tabs .sales-tab {
+    flex: 1;
+    justify-content: center;
+  }
+}

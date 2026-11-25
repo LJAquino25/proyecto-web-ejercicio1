@@ -582,3 +582,158 @@
     width: 100%;
   }
 }
+
+.staff-navigation {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-blue) transparent;
+}
+
+.staff-nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 18px;
+}
+
+.staff-nav-group .staff-nav-label {
+  margin: 0 0 5px;
+}
+
+.staff-nav-group .staff-nav-link {
+  padding: 11px 14px;
+  font-size: 14px;
+}
+
+.staff-nav-link svg {
+  flex-shrink: 0;
+}
+
+.staff-sidebar-footer {
+  flex-shrink: 0;
+}
+
+.admin-module-section {
+  margin-top: 32px;
+}
+
+.admin-module-section .admin-section-heading {
+  margin-bottom: 18px;
+}
+
+.admin-module-section h2 {
+  font-size: 28px;
+  margin: 0;
+}
+
+.admin-module-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.admin-module-grid .admin-module-card {
+  width: 100%;
+  max-width: none;
+  min-height: 160px;
+  height: 100%;
+  transition: var(--transition);
+}
+
+.admin-module-grid .admin-module-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--color-text);
+  box-shadow: 4px 4px 0 var(--color-text);
+}
+
+.admin-module-icon.yellow {
+  background: var(--color-yellow);
+}
+
+.admin-module-icon.blue {
+  background: var(--color-blue);
+}
+
+.admin-module-icon.pink {
+  background: var(--color-pink);
+}
+
+.admin-module-grid .admin-module-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-module-grid .admin-module-link {
+  margin-top: auto;
+  padding-top: 16px;
+}
+
+@media (max-width: 1100px) {
+  .admin-module-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.staff-navigation {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
+  gap: 20px;
+}
+
+.staff-nav-group {
+  flex: 0 0 auto;
+  gap: 5px;
+  margin-bottom: 0;
+}
+
+.staff-nav-group .staff-nav-label {
+  margin-bottom: 8px;
+}
+
+.staff-nav-group .staff-nav-link {
+  padding: 10px 14px;
+}
+
+.admin-module-grid .admin-module-card {
+  min-height: 140px;
+  padding: 22px;
+}
+
+.admin-module-grid .admin-module-link {
+  margin-top: auto;
+  padding-top: 12px;
+}
+
+.admin-module-section {
+  margin-top: 28px;
+}
+
+.admin-module-grid {
+  gap: 18px;
+}
+@media (min-width: 992px) {
+  .staff-sidebar {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  .staff-navigation {
+    min-height: 0;
+    overflow-y: auto;
+  }
+}
+
+.staff-navigation {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.staff-navigation::-webkit-scrollbar {
+  display: none;
+}

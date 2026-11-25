@@ -1,34 +1,65 @@
-import { ArrowUpRight, Users } from 'lucide-react'
+import { ArrowUpRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { adminModules } from '../../data/adminModules'
 
 function AdminDashboard() {
+  const moduleGroups = adminModules.filter(
+    (group) => group.name !== 'General'
+  )
+
   return (
     <section className="admin-dashboard">
       <div className="admin-welcome">
-        <span className="admin-eyebrow">PANEL ADMINISTRATIVO</span>
+        <span className="admin-eyebrow">
+          PANEL ADMINISTRATIVO
+        </span>
+
         <h1>Gestión del restaurante</h1>
+
         <p>
-          Desde aquí podrás acceder a las herramientas administrativas de Orígenes SV.
+          Administrá las operaciones de Orígenes SV desde un mismo lugar.
         </p>
       </div>
 
-      <div className="admin-section-heading">
-        <div>
-          <span className="admin-eyebrow">ÁREA DISPONIBLE</span>
-          <h2>Personal y planilla</h2>
-        </div>
-      </div>
+      {moduleGroups.map((group) => (
+        <section
+          className="admin-module-section"
+          key={group.name}
+        >
+          <div className="admin-section-heading">
+            <h2>{group.name}</h2>
+          </div>
 
-      <Link to="/staff/team" className="admin-module-card">
-        <span className="admin-module-icon pink"><Users size={23} /></span>
-        <span className="admin-module-copy">
-          <strong>Registrar empleado</strong>
-          <small>Crear una cuenta de equipo, asignarla a una sucursal y definir su rol.</small>
-          <span className="admin-module-link">
-            Abrir administración de personal <ArrowUpRight size={16} />
-          </span>
-        </span>
-      </Link>
+          <div className="admin-module-grid">
+            {group.items.map((item) => {
+              const ModuleIcon = item.icon
+
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className="admin-module-card"
+                >
+                  <span className={`admin-module-icon ${item.color}`}>
+                    <ModuleIcon size={25} />
+                  </span>
+
+                  <span className="admin-module-copy">
+                    <strong>{item.name}</strong>
+
+                    <small>{item.description}</small>
+
+                    <span className="admin-module-link">
+                      Abrir módulo
+                      <ArrowUpRight size={16} />
+                    </span>
+                  </span>
+                </Link>
+              )
+            })}
+          </div>
+        </section>
+      ))}
     </section>
   )
 }

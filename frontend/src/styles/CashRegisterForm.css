@@ -1,0 +1,174 @@
+.cash-form-information {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 22px;
+  background: var(--color-white);
+  border: 1px solid #d5cec2;
+  border-radius: var(--radius-md);
+}
+
+.cash-form-information-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 14px;
+}
+
+.cash-form-information-row svg {
+  color: #766b5f;
+  flex-shrink: 0;
+}
+
+.cash-form-information-row > span {
+  color: #766b5f;
+  font-weight: 700;
+}
+
+.cash-form-information-row strong {
+  margin-left: auto;
+  font-weight: 800;
+}
+
+.cash-form-amount {
+  margin-top: 26px;
+}
+
+.cash-form-amount input {
+  font-size: 24px;
+  font-weight: 800;
+  padding: 16px;
+}
+
+.cash-form-amount small {
+  font-size: 12px;
+  color: #766b5f;
+}
+
+.cash-form-opening {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 26px;
+  margin-top: 24px;
+  background: var(--color-yellow);
+  border: 1.5px solid var(--color-text);
+  border-radius: var(--radius-md);
+  box-shadow: 3px 3px 0 var(--color-text);
+}
+
+.cash-form-opening span {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.cash-form-opening strong {
+  font-family: var(--font-heading);
+  font-size: 42px;
+  line-height: 1;
+}
+
+.cash-form-expected {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px;
+  margin-top: 24px;
+  background: var(--color-blue);
+  border: 1.5px solid var(--color-text);
+  border-radius: var(--radius-md);
+}
+
+.cash-form-summary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.cash-form-summary-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(48, 37, 28, 0.3);
+}
+
+.cash-form-summary-total span {
+  font-weight: 800;
+}
+
+.cash-form-summary-total strong {
+  font-family: var(--font-heading);
+  font-size: 28px;
+}
+
+.cash-form-difference {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 22px;
+  margin-top: 24px;
+  border: 1px solid currentColor;
+  border-radius: var(--radius-md);
+}
+
+.cash-form-difference.balanced {
+  background: #e7f0e7;
+  color: #386348;
+}
+
+.cash-form-difference.shortage {
+  background: var(--color-pink);
+  color: #9d1855;
+}
+
+.cash-form-difference.surplus {
+  background: #f9e9a8;
+  color: #756019;
+}
+
+.cash-form-difference strong {
+  font-family: var(--font-heading);
+  font-size: 28px;
+}
+
+.cash-form-difference-message {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.cash-form-notes {
+  margin-top: 24px;
+}
+
+.admin-form-modal .modal-body {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.admin-form-modal .modal-body::-webkit-scrollbar {
+  display: none;
+}
+
+@media (max-width: 576px) {
+  .cash-form-information,
+  .cash-form-expected,
+  .cash-form-opening,
+  .cash-form-difference {
+    padding: 18px;
+  }
+
+  .cash-form-information-row strong {
+    margin-left: 0;
+  }
+}

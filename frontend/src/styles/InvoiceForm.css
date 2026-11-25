@@ -1,0 +1,130 @@
+.invoice-form-section {
+  margin-top: 26px;
+}
+
+.invoice-form-section h3 {
+  font-size: 18px;
+  margin: 0 0 14px;
+}
+
+.invoice-type-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.invoice-payment-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.invoice-type-option,
+.invoice-payment-option {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 100px;
+  padding: 20px 12px;
+  background: var(--color-white);
+  color: var(--color-text);
+  border: 1.5px solid #d5cec2;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 800;
+  transition: var(--transition);
+}
+
+.invoice-type-option:hover,
+.invoice-payment-option:hover {
+  border-color: var(--color-text);
+  transform: translateY(-2px);
+}
+
+.invoice-type-option.selected {
+  background: var(--color-yellow);
+  border-color: var(--color-text);
+  box-shadow: 3px 3px 0 var(--color-text);
+}
+
+.invoice-payment-option.selected {
+  background: var(--color-blue);
+  border-color: var(--color-text);
+  box-shadow: 3px 3px 0 var(--color-text);
+}
+
+.invoice-option-check {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background: var(--color-text);
+  color: var(--color-white);
+  border-radius: 50%;
+}
+
+.invoice-fiscal-section {
+  padding: 24px;
+  margin-top: 26px;
+  background: var(--color-white);
+  border: 1px solid #d5cec2;
+  border-radius: var(--radius-md);
+}
+
+.invoice-fiscal-heading {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 24px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid #eeeae2;
+}
+
+.invoice-fiscal-heading > svg {
+  flex-shrink: 0;
+  color: var(--color-fuchsia);
+}
+
+.invoice-fiscal-heading h3 {
+  font-size: 20px;
+  margin: 0 0 5px;
+}
+
+.invoice-fiscal-heading p {
+  margin: 0;
+  font-size: 13px;
+  color: #766b5f;
+}
+
+.admin-form-modal .modal-body {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.admin-form-modal .modal-body::-webkit-scrollbar {
+  display: none;
+}
+
+@media (max-width: 576px) {
+  .invoice-type-options,
+  .invoice-payment-options {
+    gap: 10px;
+  }
+
+  .invoice-type-option,
+  .invoice-payment-option {
+    font-size: 12px;
+    padding: 16px 8px;
+  }
+
+  .invoice-fiscal-section {
+    padding: 16px;
+  }
+}

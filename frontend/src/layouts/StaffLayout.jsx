@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { NavLink, Navigate, Outlet, useNavigate } from 'react-router-dom'
-import { Flower2, LayoutDashboard, LogOut, Users } from 'lucide-react'
+import { Flower2, LogOut, Users } from 'lucide-react'
 import { apiRequest } from '../services/api'
 import { getSession, logoutUser } from '../services/authService'
+import { adminModules } from '../data/adminModules'
 import '../styles/Admin.css'
 
 function StaffLayout() {
@@ -33,38 +34,65 @@ function StaffLayout() {
   return (
     <div className="staff-shell">
       <aside className="staff-sidebar">
-        <NavLink to="/staff" className="staff-brand" aria-label="Orígenes, espacio de equipo">
-          <span className="staff-brand-icon"><Flower2 size={26} /></span>
+
+        <NavLink
+          to="/staff"
+          className="staff-brand"
+          aria-label="Orígenes, espacio de equipo"
+        >
+          <span className="staff-brand-icon">
+            <Flower2 size={26} />
+          </span>
+
           <span>
             <strong>orígenes.</strong>
             <small>ESPACIO DE EQUIPO</small>
           </span>
         </NavLink>
 
-        <nav className="staff-navigation" aria-label="Navegación administrativa">
-          <span className="staff-nav-label">General</span>
-          <NavLink to="/staff" end className={({ isActive }) =>
-            `staff-nav-link${isActive ? ' active' : ''}`
-          }>
-            <LayoutDashboard size={19} />
-            <span>Resumen</span>
-          </NavLink>
+        <nav
+          className="staff-navigation"
+          aria-label="Navegación administrativa"
+        >
+          {adminModules.map((group) => (
+            <div className="staff-nav-group" key={group.name}>
 
-          <span className="staff-nav-label">Administración</span>
-          <NavLink to="/staff/team" className={({ isActive }) =>
-            `staff-nav-link${isActive ? ' active' : ''}`
-          }>
-            <Users size={19} />
-            <span>Personal y planilla</span>
-          </NavLink>
+              <span className="staff-nav-label">
+                {group.name}
+              </span>
+
+              {group.items.map((item) => {
+                const ModuleIcon = item.icon
+
+                return (
+                  <NavLink
+                    key={item.path}
+                    to={item.path}
+                    end={item.path === '/staff'}
+                    className={({ isActive }) =>
+                      `staff-nav-link${isActive ? ' active' : ''}`
+                    }
+                  >
+                    <ModuleIcon size={19} />
+                    <span>{item.name}</span>
+                  </NavLink>
+                )
+              })}
+
+            </div>
+          ))}
         </nav>
 
         <div className="staff-sidebar-footer">
-          <span className="staff-user-avatar"><Users size={18} /></span>
+          <span className="staff-user-avatar">
+            <Users size={18} />
+          </span>
+
           <span className="staff-user-copy">
             <strong>Equipo Orígenes</strong>
             <small>{session.role || 'Personal'}</small>
           </span>
+
           <button
             type="button"
             className="staff-logout-button"
@@ -76,11 +104,16 @@ function StaffLayout() {
             <LogOut size={18} />
           </button>
         </div>
+
       </aside>
 
       <div className="staff-main">
+
         <header className="staff-topbar">
-          <span>Orígenes SV <span aria-hidden="true">/</span> Administración</span>
+          <span>
+            Orígenes SV <span aria-hidden="true">/</span> Administración
+          </span>
+
           <span className="staff-online-indicator">
             <i aria-hidden="true" />
             Espacio de trabajo
@@ -96,6 +129,7 @@ function StaffLayout() {
         <main className="staff-content">
           <Outlet />
         </main>
+
       </div>
     </div>
   )

@@ -149,7 +149,7 @@ CREATE TABLE inventario_sucursal_empaquetado (
 CREATE TABLE movimiento_inventario (
     id               SERIAL PRIMARY KEY,
     sucursal_id      INT NOT NULL REFERENCES sucursal(id),
-    empleado_id      INT NOT NULL REFERENCES empleado(id),
+    empleado_id      INT REFERENCES empleado(id),
     insumo_id        INT REFERENCES insumo(id),
     producto_id      INT REFERENCES producto_empaquetado(producto_id),
     tipo_movimiento  VARCHAR(10) NOT NULL
@@ -312,10 +312,13 @@ CREATE TABLE factura (
 );
 
 CREATE TABLE credito_fiscal (
+    correlativo       SERIAL NOT NULL,
     pedido_id           INT PRIMARY KEY REFERENCES pedido(id) ON DELETE CASCADE,
+    fecha               TIMESTAMP NOT NULL DEFAULT NOW(),
     nit                 VARCHAR(20)  NOT NULL,
     nrc                 VARCHAR(20)  NOT NULL,
     nombre_institucion  VARCHAR(150) NOT NULL,
     giro                VARCHAR(150),
-    direccion           VARCHAR(250)
+    direccion           VARCHAR(250),
+    CONSTRAINT credito_fiscal_correlativo_uq UNIQUE (correlativo)
 );

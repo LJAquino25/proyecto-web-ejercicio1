@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   ArrowRight,
   ArrowLeft,
@@ -16,6 +16,8 @@ import '../../styles/LoginPage.css'
 
 function LoginPage() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const requiresCustomer = Boolean(location.state?.requiresCustomer)
 
   const [formData, setFormData] = useState({
     email: '',
@@ -178,7 +180,9 @@ function LoginPage() {
             <h1>Iniciar sesión</h1>
 
             <p className="auth-subtitle">
-              Accedé con tu correo y contraseña.
+              {requiresCustomer
+                ? 'Iniciá sesión para continuar con tu pedido.'
+                : 'Accedé con tu correo y contraseña.'}
             </p>
 
             {errorMsg && (
@@ -285,6 +289,7 @@ function LoginPage() {
 
             <Link
               to="/register"
+              state={location.state}
               className="login-register-button"
             >
               <UserRoundPlus size={20} />

@@ -6,7 +6,6 @@ export async function getCatalog() {
 
 export async function createOrder({
   branchId = 1,
-  customerId = null,
   invoiceType = 'NORMAL',
   status = 'CART',
   orderItems,
@@ -15,7 +14,6 @@ export async function createOrder({
     method: 'POST',
     body: JSON.stringify({
       branch_id: branchId,
-      customer_id: customerId,
       invoice_type: invoiceType,
       status,
       orderItems,

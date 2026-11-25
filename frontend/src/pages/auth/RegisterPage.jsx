@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   ArrowRight,
   ArrowLeft,
@@ -18,6 +18,8 @@ import '../../styles/RegisterPage.css'
 
 function RegisterPage() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const requiresCustomer = Boolean(location.state?.requiresCustomer)
 
   const [formData, setFormData] = useState({
     full_name: '',
@@ -43,7 +45,7 @@ function RegisterPage() {
 
     try {
       await registerCustomer(formData)
-      navigate('/login')
+      navigate('/login', { state: location.state })
     } catch (error) {
       setErrorMsg(
         error.message || 'No se pudo completar el registro.'
@@ -182,8 +184,9 @@ function RegisterPage() {
             <h1>Registro de cliente</h1>
 
             <p className="register-subtitle">
-              Registrate para hacer tus pedidos
-              y guardar tus datos.
+              {requiresCustomer
+                ? 'Creá tu cuenta y luego iniciá sesión para continuar con tu pedido.'
+                : 'Registrate para hacer tus pedidos y guardar tus datos.'}
             </p>
 
             {errorMsg && (
@@ -381,6 +384,7 @@ function RegisterPage() {
 
             <Link
               to="/login"
+              state={location.state}
               className="register-login-button"
             >
               <LogIn size={20} />

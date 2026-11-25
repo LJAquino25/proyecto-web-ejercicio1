@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   ArrowLeft,
   CheckCircle2,
@@ -13,7 +13,7 @@ import {
   Utensils,
 } from 'lucide-react'
 import { createInvoice, createOrder, getCatalog } from '../../services/catalogService'
-import { getCustomerIdFromToken } from '../../services/authService'
+import { getSession } from '../../services/authService'
 import '../../styles/MenuPage.css'
 
 const FILTERS = [
@@ -36,19 +36,49 @@ const EMPTY_TAX_CREDIT = {
   address: '',
 }
 
+const PENDING_CART_KEY = 'pending-order-cart'
+
 function normalizeFilter(rawType) {
   const upper = String(rawType || '').trim().toUpperCase()
   return ['PREPARED', 'PACKAGED'].includes(upper) ? upper : 'ALL'
 }
 
 function MenuPage() {
+  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const initialType = normalizeFilter(searchParams.get('type'))
 
   const [products, setProducts] = useState([])
   const [selectedType, setSelectedType] = useState(initialType)
   const [searchTerm, setSearchTerm] = useState('')
-  const [cart, setCart] = useState([])
+  const [cart, setCart] = useState(() => {
+    const savedCart = sessionStorage.getItem(PENDING_CART_KEY)
+    if (!savedCart) return []
+
+    try {
+      const parsedCart = JSON.parse(savedCart)
+      if (
+        Array.isArray(parsedCart) &&
+        parsedCart.every(
+          (item) =>
+            item &&
+            Number.isInteger(item.id) &&
+            typeof item.name === 'string' &&
+            Number.isFinite(item.price) &&
+            Number.isInteger(item.quantity) &&
+            item.quantity > 0
+        )
+      ) {
+        return parsedCart
+      }
+    } catch {
+      sessionStorage.removeItem(PENDING_CART_KEY)
+      return []
+    }
+
+    sessionStorage.removeItem(PENDING_CART_KEY)
+    return []
+  })
   const [branchId, setBranchId] = useState(1)
   const [invoiceType, setInvoiceType] = useState('NORMAL')
   const [taxCreditData, setTaxCreditData] = useState(EMPTY_TAX_CREDIT)
@@ -57,6 +87,14 @@ function MenuPage() {
   const [submitting, setSubmitting] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
   const [orderFeedback, setOrderFeedback] = useState(null)
+
+  useEffect(() => {
+    if (cart.length > 0) {
+      sessionStorage.setItem(PENDING_CART_KEY, JSON.stringify(cart))
+    } else {
+      sessionStorage.removeItem(PENDING_CART_KEY)
+    }
+  }, [cart])
 
   useEffect(() => {
     setSelectedType(normalizeFilter(searchParams.get('type')))
@@ -173,6 +211,13 @@ function MenuPage() {
   const handleConfirmOrder = async () => {
     if (cart.length === 0) return
 
+    if (getSession()?.accountType !== 'customer') {
+      navigate('/login', {
+        state: { requiresCustomer: true },
+      })
+      return
+    }
+
     if (invoiceType === 'TAX_CREDIT') {
       if (
         !taxCreditData.nit.trim() ||
@@ -191,7 +236,6 @@ function MenuPage() {
     setOrderFeedback(null)
 
     try {
-      const customerId = getCustomerIdFromToken()
       const orderItems = cart.map((item) => ({
         product_id: item.id,
         quantity: item.quantity,
@@ -199,7 +243,6 @@ function MenuPage() {
 
       const response = await createOrder({
         branchId: Number(branchId),
-        customerId,
         invoiceType,
         status: 'CART',
         orderItems,
@@ -231,6 +274,13 @@ function MenuPage() {
         invoiceError,
       })
     } catch (error) {
+      if (error.status === 401) {
+        navigate('/login', {
+          state: { requiresCustomer: true },
+        })
+        return
+      }
+
       setErrorMsg(error.message || 'No se pudo crear el pedido.')
     } finally {
       setSubmitting(false)

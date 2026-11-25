@@ -6,7 +6,6 @@ const {
   listProducts,
   addRecipes,
   listRecipes,
-  listMenu,
   alertStock,
   prepareRecipe,
   addCatalog,
@@ -16,7 +15,6 @@ router.post("/products", addProducts);
 router.get("/products", listProducts);
 router.post("/recipes", addRecipes);
 router.get("/recipes", listRecipes);
-router.get("/catalog", listMenu);
 router.get("/inventory/alerts", alertStock);
 router.post("/prepare", prepareRecipe);
 router.post("/catalog", addCatalog);

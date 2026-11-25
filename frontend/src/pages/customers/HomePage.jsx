@@ -13,25 +13,20 @@ import '../../styles/HomePage.css'
 
 const categories = [
   {
-    name: 'Café',
-    description: 'Tenemos muchos tipos diferentes.',
-    icon: Coffee,
+    name: 'Producto elaborado',
+    type: 'PREPARED',
+    description: 'Preparados al momento en nuestra cocina y barra con ingredientes frescos.',
+    icon: Utensils,
     color: 'yellow'
   },
   {
-    name: 'Comida típica',
-    description: 'Con el sabor de nuestra tierra.',
-    icon: Utensils,
+    name: 'Empaquetado',
+    type: 'PACKAGED',
+    description: 'Bebidas y productos listos para llevar o acompañar tu pedido.',
+    icon: Coffee,
     color: 'blue'
-  },
-  {
-    name: 'Postres',
-    description: 'No se q poner aquí.',
-    icon: CakeSlice,
-    color: 'pink'
   }
 ]
-
 function HomePage() {
   return (
     <main className="home-page">
@@ -101,7 +96,7 @@ function HomePage() {
 
         <h2>¿Qué se te antoja hoy?</h2>
 
-        <div className="category-grid">
+        <div className="category-grid ">
 
           {categories.map((category) => {
             const CategoryIcon = category.icon

@@ -2,13 +2,11 @@ const jwt = require("jsonwebtoken");
 
 const verifyToken = (req, res, next) => {
 
-    const authHeader = req.headers.authorization
+    const token = req.cookies?.token
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    if (!token) {
         return res.status(401).json({ error: "Token not provided" });
     }
-
-    const token = token.split(" ")[1]
 
     try {
         const payload = jwt.verify(token, process.env.JWT_SECRET)

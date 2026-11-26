@@ -53,9 +53,6 @@ const deleteEmployee = async ({ id }) => {
 }
 
 const listEmployee = async ({ type }) => {
-    if (!type) {
-        throw createHttpError(400, "Required fields");
-    }
     const listEmployee = await repo.list({ type });
     return listEmployee;
 

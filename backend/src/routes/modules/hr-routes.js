@@ -15,7 +15,7 @@ const {
 } = require("../../modules/hr-payroll/payroll.controller.js")
 
 router.post("/employee", requireAdmin, createEmployee)
-router.get("/employee", listEmployee)
+router.get("/employee", requireAdmin, listEmployee)
 router.put("/employee", requireAdmin, editEmployee)
 router.delete("/employee", requireAdmin, deleteEmployee)
 

@@ -19,11 +19,11 @@ const createPayroll = async (req, res) => {
 
 const listPayroll = async (req, res) => {
     try {
-        const { employee_id, period } = req.body;
+        const { employee_id, period } = req.query;
         const listPayroll = await service.listPayroll({ employee_id, period });
-        return res.status(201).json({
+        return res.status(200).json({
             message: "List of payroll",
-            employee: listPayroll
+            payroll: listPayroll
         })
     } catch (error) {
         const status = error.statusCode || 400;

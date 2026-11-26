@@ -52,10 +52,24 @@ const createPayroll = async ({ employee_id, period, fortnight }) => {
 }
 
 const listPayroll = async ({ employee_id, period }) => {
-    if (!employee_id || !period) {
-        throw createHttpError(400, "Required fields");
+    const filters = {};
+
+    if (employee_id !== undefined) {
+        const parsedEmployeeId = Number(employee_id);
+        if (!Number.isInteger(parsedEmployeeId) || parsedEmployeeId < 1) {
+            throw createHttpError(400, "Invalid employee_id");
+        }
+        filters.employee_id = parsedEmployeeId;
     }
-    return await repo.list({ employee_id, period })
+
+    if (period !== undefined) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(period)) {
+            throw createHttpError(400, "Invalid period");
+        }
+        filters.period = period;
+    }
+
+    return await repo.list(filters)
 }
 
 module.exports = {

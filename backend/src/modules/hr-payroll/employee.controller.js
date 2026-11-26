@@ -52,9 +52,9 @@ const deleteEmployee = async (req, res) => {
 
 const listEmployee = async (req, res) => {
     try {
-        const { type } = req.body;
+        const { type } = req.query;
         const listEmployee = await service.listEmployee({ type });
-        return res.status(201).json({
+        return res.status(200).json({
             message: "List of employees",
             employee: listEmployee
         })

@@ -35,6 +35,17 @@ const listProducts = async (req, res) => {
   }
 };
 
+const listSupplies = async (req, res) => {
+  try {
+    const supplies = await inventoryRecipesService.listSupplies();
+    return res.status(200).json(supplies);
+  } catch (error) {
+    return res.status(500).json({
+      message: error.message || "Error getting supplies",
+    });
+  }
+};
+
 const addRecipes = async (req, res) => {
   try {
     const result = await inventoryRecipesService.addRecipe({
@@ -121,6 +132,7 @@ const addCatalog = async (req, res) => {
         req.body.supplierId !== undefined ? Number(req.body.supplierId) : null,
       unitCost:
         req.body.unitCost !== undefined ? Number(req.body.unitCost) : null,
+      ingredients: req.body.ingredients,
     });
     return res.status(201).json({
       message: "Product successfully added",
@@ -137,6 +149,7 @@ const addCatalog = async (req, res) => {
 module.exports = {
   addProducts,
   listProducts,
+  listSupplies,
   addRecipes,
   listRecipes,
   listMenu,

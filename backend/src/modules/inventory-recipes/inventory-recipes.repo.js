@@ -43,6 +43,13 @@ const getInventoryByBranch = async (branchId, db = pool) => {
   return result.rows;
 };
 
+const getAllSupplies = async (db = pool) => {
+  const result = await db.query(
+    "SELECT id, supplier_id, name, unit FROM supply ORDER BY name ASC"
+  );
+  return result.rows;
+};
+
 const createRecipe = async ({ productId, name, description }, db = pool) => {
   const result = await db.query(
     "INSERT INTO recipe (product_id, name, description) VALUES ($1, $2, $3) RETURNING id, product_id, name, description",
@@ -87,7 +94,7 @@ const getCatalog = async (db = pool) => {
 
 const getLowStockByBranch = async (branchId, db = pool) => {
   const result = await db.query(
-    `SELECT 'LOW STOCK' AS alert, s.id AS supply_id, s.name, bsi.quantity, bsi.min_stock
+    `SELECT 'LOW STOCK' AS alert, s.id AS supply_id, s.name, s.unit, bsi.quantity, bsi.min_stock
      FROM branch_supply_inventory bsi
      JOIN supply s ON bsi.supply_id = s.id
      WHERE bsi.branch_id = $1 AND bsi.quantity <= bsi.min_stock`,
@@ -169,6 +176,7 @@ module.exports = {
   createSupply,
   upsertBranchSupplyInventory,
   getInventoryByBranch,
+  getAllSupplies,
   createRecipe,
   createRecipeDetail,
   getAllRecipes,

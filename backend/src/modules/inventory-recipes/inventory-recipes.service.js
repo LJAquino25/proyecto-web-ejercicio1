@@ -7,6 +7,31 @@ const createHttpError = (statusCode, message) => {
   return error;
 };
 
+const normalizeIngredients = (ingredients) => {
+  if (!Array.isArray(ingredients) || ingredients.length === 0) {
+    throw createHttpError(400, "El producto preparado debe incluir una receta con insumos");
+  }
+
+  const seenSupplyIds = new Set();
+  return ingredients.map((item) => {
+    const supplyId = Number(item && item.id);
+    const quantityUsed = Number(item && item.quantity);
+
+    if (
+      !Number.isInteger(supplyId) ||
+      supplyId <= 0 ||
+      !Number.isFinite(quantityUsed) ||
+      quantityUsed <= 0 ||
+      seenSupplyIds.has(supplyId)
+    ) {
+      throw createHttpError(400, "Los insumos deben ser válidos, positivos y no repetirse");
+    }
+
+    seenSupplyIds.add(supplyId);
+    return { supplyId, quantityUsed };
+  });
+};
+
 const addProductToInventory = async ({
   branchId = 1,
   supplierId = 1,
@@ -37,7 +62,10 @@ const addProductToInventory = async ({
         branchId,
         supplyId: supply.id,
         quantity: parsedQty,
-        minStock: Number(minStock) || 15,
+        minStock:
+          minStock !== undefined && minStock !== null && minStock !== ""
+            ? Number(minStock)
+            : 15,
       },
       client,
     );
@@ -61,6 +89,10 @@ const listProducts = async (branchId = 1) => {
   return await inventoryRecipesRepo.getInventoryByBranch(branchId);
 };
 
+const listSupplies = async () => {
+  return await inventoryRecipesRepo.getAllSupplies();
+};
+
 const addRecipe = async ({
   productId,
   name,
@@ -68,42 +100,24 @@ const addRecipe = async ({
   ingredients,
 }) => {
   const parsedProductId = Number(productId);
+  const cleanName = String(name || "").trim();
 
   if (
     !Number.isInteger(parsedProductId) ||
-    !name ||
-    !Array.isArray(ingredients) ||
-    ingredients.length === 0
+    parsedProductId <= 0 ||
+    !cleanName
   ) {
-    throw createHttpError(400, "product_id, name and ingredients are required");
+    throw createHttpError(400, "product_id and name are required");
   }
 
-  const seenSupplyIds = new Set();
-  const normalizedIngredients = [];
-
-  for (const item of ingredients) {
-    const supplyId = Number(item.id);
-    const qtyUsed = Number(item.quantity);
-
-    if (
-      !Number.isInteger(supplyId) ||
-      Number.isNaN(qtyUsed) ||
-      qtyUsed <= 0 ||
-      seenSupplyIds.has(supplyId)
-    ) {
-      throw createHttpError(400, "Ingredients must be valids and uniques");
-    }
-
-    seenSupplyIds.add(supplyId);
-    normalizedIngredients.push({ supplyId, quantityUsed: qtyUsed });
-  }
+  const normalizedIngredients = normalizeIngredients(ingredients);
 
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
 
     const recipe = await inventoryRecipesRepo.createRecipe(
-      { productId: parsedProductId, name, description },
+      { productId: parsedProductId, name: cleanName, description },
       client,
     );
 
@@ -224,15 +238,20 @@ const addCatalog = async ({
   productType = "PREPARED",
   supplierId = null,
   unitCost = null,
+  ingredients,
 }) => {
   const normalizedType = String(productType).toUpperCase();
-  if (!name || Number.isNaN(price) || price <= 0) {
+  const cleanName = String(name || "").trim();
+  if (!cleanName || !Number.isFinite(price) || price <= 0) {
     throw createHttpError(400, "Name or price not valid");
   }
 
   if (!["PREPARED", "PACKAGED"].includes(normalizedType)) {
     throw createHttpError(400, "Product type must be PREPARED or PACKAGED");
   }
+
+  const normalizedIngredients =
+    normalizedType === "PREPARED" ? normalizeIngredients(ingredients) : [];
 
   if (normalizedType === "PACKAGED") {
     if (!Number.isInteger(supplierId) || supplierId <= 0) {
@@ -241,7 +260,7 @@ const addCatalog = async ({
         "Valid supplierId is required for PACKAGED products",
       );
     }
-    if (Number.isNaN(unitCost) || unitCost === null || unitCost <= 0) {
+    if (!Number.isFinite(unitCost) || unitCost === null || unitCost <= 0) {
       throw createHttpError(
         400,
         "Valid unitCost is required for PACKAGED products",
@@ -252,20 +271,37 @@ const addCatalog = async ({
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
-    let product = await inventoryRecipesRepo.findProductByName(name, client);
+    let product = await inventoryRecipesRepo.findProductByName(cleanName, client);
     if (product) {
       throw createHttpError(400, "A product with this name already exists");
     }
     product = await inventoryRecipesRepo.createProduct(
-      { name, price, productType: normalizedType },
+      { name: cleanName, price, productType: normalizedType },
       client,
     );
+    let recipeId = null;
     if (normalizedType == "PACKAGED") {
       const productId = product.id;
       await inventoryRecipesRepo.createPackagedProduct(
         { productId, supplierId, unitCost },
         client,
       );
+    } else {
+      const recipe = await inventoryRecipesRepo.createRecipe(
+        { productId: product.id, name: product.name },
+        client,
+      );
+      recipeId = recipe.id;
+      for (const ingredient of normalizedIngredients) {
+        await inventoryRecipesRepo.createRecipeDetail(
+          {
+            recipeId,
+            supplyId: ingredient.supplyId,
+            quantityUsed: ingredient.quantityUsed,
+          },
+          client,
+        );
+      }
     }
 
     await client.query("COMMIT");
@@ -275,6 +311,7 @@ const addCatalog = async ({
       name: product.name,
       price: product.price,
       product_type: product.product_type,
+      ...(recipeId ? { recipe_id: recipeId } : {}),
     };
   } catch (error) {
     await client.query("ROLLBACK");
@@ -287,6 +324,7 @@ const addCatalog = async ({
 module.exports = {
   addProductToInventory,
   listProducts,
+  listSupplies,
   addRecipe,
   listRecipes,
   listMenu,

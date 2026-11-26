@@ -4,6 +4,7 @@ const router = express.Router();
 const {
   addProducts,
   listProducts,
+  listSupplies,
   addRecipes,
   listRecipes,
   alertStock,
@@ -13,6 +14,7 @@ const {
 
 router.post("/products", addProducts);
 router.get("/products", listProducts);
+router.get("/supplies", listSupplies);
 router.post("/recipes", addRecipes);
 router.get("/recipes", listRecipes);
 router.get("/inventory/alerts", alertStock);

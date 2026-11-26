@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -15,12 +15,19 @@ import {
 import '../../styles/InventoryPage.css'
 import '../../styles/SalesPage.css'
 import '../../styles/TeamPage.css'
+import { getBranches } from '../../services/catalogService'
+import { getSession } from '../../services/authService'
+import {
+  createPayroll,
+  getEmployees,
+  getPayrolls,
+  updateEmployee
+} from '../../services/employeeService'
+import PayrollForm from '../../components/admin/PayrollForm'
+import EmployeeActionModal from '../../components/admin/EmployeeActionModal'
+import PayrollDetailModal from '../../components/admin/PayrollDetailModal'
 
-const BRANCHES = [
-  { id: 1, name: 'Centro Histórico' },
-  { id: 2, name: 'Escalón' },
-  { id: 3, name: 'Santa Elena' }
-]
+const EMPLOYEE_PAGE_SIZE = 10
 
 const ROLES = {
   GERENTE: 'Gerente',
@@ -29,90 +36,6 @@ const ROLES = {
   BARISTA: 'Barista',
   PUPUSERA: 'Pupusería'
 }
-
-const EMPLOYEES = [
-  {
-    id: 1,
-    full_name: 'Ana Martínez',
-    email: 'ana@example.com',
-    role: 'GERENTE',
-    branch_id: 1,
-    monthly_salary: 900,
-    is_active: true
-  },
-  {
-    id: 2,
-    full_name: 'Carlos López',
-    email: 'carlos@example.com',
-    role: 'CAJERO',
-    branch_id: 1,
-    monthly_salary: 450,
-    is_active: true
-  },
-  {
-    id: 3,
-    full_name: 'María Pérez',
-    email: 'maria@example.com',
-    role: 'COCINERO',
-    branch_id: 2,
-    monthly_salary: 550,
-    is_active: true
-  },
-  {
-    id: 4,
-    full_name: 'José García',
-    email: 'jose@example.com',
-    role: 'BARISTA',
-    branch_id: 3,
-    monthly_salary: 450,
-    is_active: true
-  },
-  {
-    id: 5,
-    full_name: 'Lucía Hernández',
-    email: 'lucia@example.com',
-    role: 'PUPUSERA',
-    branch_id: 2,
-    monthly_salary: 450,
-    is_active: false
-  }
-]
-
-const PAYROLLS = [
-  {
-    id: 1,
-    employee_id: 2,
-    period_start: '2026-11-01',
-    period_end: '2026-11-15',
-    gross_salary: 225,
-    isss: 6.75,
-    afp: 16.31,
-    income_tax: 0,
-    status: 'PAID'
-  },
-  {
-    id: 2,
-    employee_id: 3,
-    period_start: '2026-11-01',
-    period_end: '2026-11-15',
-    gross_salary: 275,
-    isss: 8.25,
-    afp: 19.94,
-    income_tax: 0,
-    status: 'PAID'
-  },
-  {
-    id: 3,
-    employee_id: 4,
-    period_start: '2026-11-01',
-    period_end: '2026-11-15',
-    gross_salary: 225,
-    isss: 6.75,
-    afp: 16.31,
-    income_tax: 0,
-    status: 'PENDING'
-  }
-]
 
 const AVATAR_COLORS = ['pink', 'yellow', 'blue']
 
@@ -131,20 +54,77 @@ const getInitials = name =>
     .join('')
     .toUpperCase()
 
-const getBranchName = id =>
-  BRANCHES.find(branch => branch.id === id)?.name || 'Sin sucursal'
+const getPeriodLabel = value => {
+  const dateValue = String(value || '').slice(0, 10)
+  const date = new Date(`${dateValue}T00:00:00Z`)
 
-const getEmployee = id =>
-  EMPLOYEES.find(employee => employee.id === id)
+  return Number.isNaN(date.getTime())
+    ? dateValue || '—'
+    : new Intl.DateTimeFormat('es-SV', {
+        month: 'long',
+        year: 'numeric',
+        timeZone: 'UTC'
+      }).format(date)
+}
 
 function TeamPage() {
+  const canViewPayroll = String(getSession()?.role || '').toUpperCase() === 'GERENTE'
+  const [branches, setBranches] = useState([])
+  const [employees, setEmployees] = useState([])
+  const [payrolls, setPayrolls] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
+  const [successMessage, setSuccessMessage] = useState('')
   const [activeTab, setActiveTab] = useState('employees')
   const [searchTerm, setSearchTerm] = useState('')
   const [branchFilter, setBranchFilter] = useState('ALL')
   const [roleFilter, setRoleFilter] = useState('ALL')
   const [statusFilter, setStatusFilter] = useState('ALL')
+  const [employeePage, setEmployeePage] = useState(1)
+  const [isPayrollFormOpen, setIsPayrollFormOpen] = useState(false)
+  const [selectedEmployee, setSelectedEmployee] = useState(null)
+  const [employeeAction, setEmployeeAction] = useState(null)
+  const [selectedPayroll, setSelectedPayroll] = useState(null)
 
-  const activeEmployees = EMPLOYEES.filter(
+  const loadData = useCallback(async () => {
+    if (!canViewPayroll) {
+      setLoading(false)
+      return
+    }
+
+    setLoadError('')
+    try {
+      const [branchData, employeeData, payrollData] = await Promise.all([
+        getBranches(),
+        getEmployees(),
+        canViewPayroll ? getPayrolls() : Promise.resolve([])
+      ])
+      setBranches(branchData)
+      setEmployees(employeeData)
+      setPayrolls(payrollData)
+      setEmployeePage(1)
+    } catch (error) {
+      setLoadError(error.message || 'No se pudieron cargar los datos de personal y planilla.')
+    } finally {
+      setLoading(false)
+    }
+  }, [canViewPayroll])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
+
+  if (!canViewPayroll) {
+    return (
+      <section className="team-page">
+        <p className="team-page-error" role="alert">
+          Solo gerencia puede consultar la información de personal y planilla.
+        </p>
+      </section>
+    )
+  }
+
+  const activeEmployees = employees.filter(
     employee => employee.is_active
   )
 
@@ -153,7 +133,7 @@ function TeamPage() {
   ).size
 
   const monthlyPayroll = activeEmployees.reduce(
-    (total, employee) => total + employee.monthly_salary,
+    (total, employee) => total + Number(employee.monthly_salary || 0),
     0
   )
 
@@ -180,13 +160,31 @@ function TeamPage() {
 
   const changeTab = tab => {
     setActiveTab(tab)
+    setSelectedPayroll(null)
+    setSuccessMessage('')
     setSearchTerm('')
     setBranchFilter('ALL')
     setRoleFilter('ALL')
     setStatusFilter('ALL')
+    setEmployeePage(1)
   }
 
-  const filteredEmployees = EMPLOYEES.filter(employee => {
+  const handlePayrollSubmit = async payroll => {
+    await createPayroll(payroll)
+    setIsPayrollFormOpen(false)
+    setSuccessMessage('La planilla se generó correctamente.')
+    await loadData()
+  }
+
+  const handleEmployeeUpdate = async employee => {
+    await updateEmployee(employee)
+    setEmployeeAction(null)
+    setSelectedEmployee(null)
+    setSuccessMessage('Los datos del empleado se actualizaron correctamente.')
+    await loadData()
+  }
+
+  const filteredEmployees = employees.filter(employee => {
     const search = searchTerm.trim().toLowerCase()
 
     const matchesSearch =
@@ -213,29 +211,30 @@ function TeamPage() {
     )
   })
 
-  const filteredPayrolls = PAYROLLS.filter(payroll => {
-    const employee = getEmployee(payroll.employee_id)
+  const filteredPayrolls = payrolls.filter(payroll => {
     const search = searchTerm.trim().toLowerCase()
+    const period = String(payroll.period || '').slice(0, 10)
 
     const matchesSearch =
-      employee?.full_name.toLowerCase().includes(search) ||
-      payroll.period_start.includes(search) ||
-      payroll.period_end.includes(search)
+      String(payroll.employee_name || '').toLowerCase().includes(search) ||
+      period.includes(search)
 
     const matchesBranch =
       branchFilter === 'ALL' ||
-      employee?.branch_id === Number(branchFilter)
+      Number(payroll.branch_id) === Number(branchFilter)
 
-    const matchesStatus =
-      statusFilter === 'ALL' ||
-      payroll.status === statusFilter
-
-    return matchesSearch && matchesBranch && matchesStatus
+    return matchesSearch && matchesBranch
   })
 
-  const totalRecords = activeTab === 'employees'
-    ? filteredEmployees.length
-    : filteredPayrolls.length
+  const totalEmployeePages = Math.max(
+    1,
+    Math.ceil(filteredEmployees.length / EMPLOYEE_PAGE_SIZE)
+  )
+  const currentEmployeePage = Math.min(employeePage, totalEmployeePages)
+  const visibleEmployees = filteredEmployees.slice(
+    (currentEmployeePage - 1) * EMPLOYEE_PAGE_SIZE,
+    currentEmployeePage * EMPLOYEE_PAGE_SIZE
+  )
 
   return (
     <section className="team-page">
@@ -269,7 +268,8 @@ function TeamPage() {
           <button
             type="button"
             className="inventory-primary-button"
-            disabled
+            onClick={() => setIsPayrollFormOpen(true)}
+            disabled={loading}
           >
             <Plus size={20} />
             Generar planilla
@@ -299,6 +299,11 @@ function TeamPage() {
         })}
       </div>
 
+      {loadError && <p className="team-page-error" role="alert">{loadError}</p>}
+      {successMessage && (
+        <p className="team-page-success" role="status">{successMessage}</p>
+      )}
+
       <div className="sales-tabs team-tabs">
         <button
           type="button"
@@ -311,16 +316,18 @@ function TeamPage() {
           Empleados
         </button>
 
-        <button
-          type="button"
-          className={`sales-tab ${
-            activeTab === 'payroll' ? 'active' : ''
-          }`}
-          onClick={() => changeTab('payroll')}
-        >
-          <ClipboardList size={19} />
-          Planillas
-        </button>
+        {canViewPayroll && (
+          <button
+            type="button"
+            className={`sales-tab ${
+              activeTab === 'payroll' ? 'active' : ''
+            }`}
+            onClick={() => changeTab('payroll')}
+          >
+            <ClipboardList size={19} />
+            Planillas
+          </button>
+        )}
       </div>
 
       <section className="inventory-panel">
@@ -340,18 +347,19 @@ function TeamPage() {
 
         <div className={`inventory-filters team-filters ${activeTab}`}>
           <label className="inventory-field">
-            <span>Buscar empleado</span>
+            <span>{activeTab === 'employees' ? 'Buscar empleado' : 'Buscar empleado o período'}</span>
 
             <div className="inventory-search">
               <Search size={19} />
 
               <input
                 type="search"
-                placeholder="Buscar empleado..."
+                placeholder={activeTab === 'employees' ? 'Buscar empleado...' : 'Nombre o fecha...'}
                 value={searchTerm}
-                onChange={event =>
+                onChange={event => {
                   setSearchTerm(event.target.value)
-                }
+                  setEmployeePage(1)
+                }}
               />
             </div>
           </label>
@@ -361,13 +369,15 @@ function TeamPage() {
 
             <select
               value={branchFilter}
-              onChange={event =>
+              onChange={event => {
                 setBranchFilter(event.target.value)
-              }
+                setEmployeePage(1)
+              }}
+              disabled={loading}
             >
               <option value="ALL">Todas las sucursales</option>
 
-              {BRANCHES.map(branch => (
+              {branches.map(branch => (
                 <option key={branch.id} value={branch.id}>
                   {branch.name}
                 </option>
@@ -381,9 +391,10 @@ function TeamPage() {
 
               <select
                 value={roleFilter}
-                onChange={event =>
+                onChange={event => {
                   setRoleFilter(event.target.value)
-                }
+                  setEmployeePage(1)
+                }}
               >
                 <option value="ALL">Todos los cargos</option>
 
@@ -396,30 +407,22 @@ function TeamPage() {
             </label>
           )}
 
-          <label className="inventory-field">
-            <span>Estado</span>
-
-            <select
-              value={statusFilter}
-              onChange={event =>
-                setStatusFilter(event.target.value)
-              }
-            >
-              <option value="ALL">Todos los estados</option>
-
-              {activeTab === 'employees' ? (
-                <>
-                  <option value="ACTIVE">Activo</option>
-                  <option value="INACTIVE">Inactivo</option>
-                </>
-              ) : (
-                <>
-                  <option value="PAID">Pagada</option>
-                  <option value="PENDING">Pendiente</option>
-                </>
-              )}
-            </select>
-          </label>
+          {activeTab === 'employees' && (
+            <label className="inventory-field">
+              <span>Estado</span>
+              <select
+                value={statusFilter}
+                onChange={event => {
+                  setStatusFilter(event.target.value)
+                  setEmployeePage(1)
+                }}
+              >
+                <option value="ALL">Todos los estados</option>
+                <option value="ACTIVE">Activo</option>
+                <option value="INACTIVE">Inactivo</option>
+              </select>
+            </label>
+          )}
         </div>
 
         <div className="inventory-table-wrapper">
@@ -437,7 +440,7 @@ function TeamPage() {
               </thead>
 
               <tbody>
-                {filteredEmployees.map(employee => (
+                {visibleEmployees.map(employee => (
                   <tr key={employee.id}>
                     <td>
                       <div className="team-employee">
@@ -460,11 +463,11 @@ function TeamPage() {
 
                     <td>
                       <span className="team-role">
-                        {ROLES[employee.role]}
+                        {ROLES[employee.role] || employee.role}
                       </span>
                     </td>
 
-                    <td>{getBranchName(employee.branch_id)}</td>
+                    <td>{employee.branch_name || 'Sin sucursal'}</td>
 
                     <td className="team-money">
                       {formatMoney(employee.monthly_salary)}
@@ -484,8 +487,11 @@ function TeamPage() {
                           type="button"
                           className="team-action view"
                           title="Ver empleado"
-                          aria-label="Ver empleado"
-                          disabled
+                          aria-label={`Ver empleado ${employee.full_name}`}
+                          onClick={() => {
+                            setSelectedEmployee(employee)
+                            setEmployeeAction('view')
+                          }}
                         >
                           <Eye size={18} />
                         </button>
@@ -494,8 +500,11 @@ function TeamPage() {
                           type="button"
                           className="team-action edit"
                           title="Editar empleado"
-                          aria-label="Editar empleado"
-                          disabled
+                          aria-label={`Editar empleado ${employee.full_name}`}
+                          onClick={() => {
+                            setSelectedEmployee(employee)
+                            setEmployeeAction('edit')
+                          }}
                         >
                           <Pencil size={17} />
                         </button>
@@ -504,10 +513,17 @@ function TeamPage() {
                   </tr>
                 ))}
 
-                {filteredEmployees.length === 0 && (
+                {!loading && filteredEmployees.length === 0 && (
                   <tr>
                     <td colSpan={6} className="inventory-empty">
                       No se encontraron empleados.
+                    </td>
+                  </tr>
+                )}
+                {loading && (
+                  <tr>
+                    <td colSpan={6} className="inventory-empty">
+                      Cargando empleados...
                     </td>
                   </tr>
                 )}
@@ -519,61 +535,48 @@ function TeamPage() {
                 <tr>
                   <th>Empleado</th>
                   <th>Período</th>
-                  <th>Salario bruto</th>
+                  <th>Salario base</th>
                   <th>ISSS</th>
                   <th>AFP</th>
                   <th>Renta</th>
                   <th>Salario neto</th>
-                  <th>Estado</th>
+                  <th>Registro</th>
                   <th>Acciones</th>
                 </tr>
               </thead>
 
               <tbody>
-                {filteredPayrolls.map(payroll => {
-                  const employee = getEmployee(payroll.employee_id)
-
-                  const deductions =
-                    payroll.isss +
-                    payroll.afp +
-                    payroll.income_tax
-
-                  const netSalary =
-                    payroll.gross_salary - deductions
-
-                  return (
+                {filteredPayrolls.map(payroll => (
                     <tr key={payroll.id}>
                       <td>
-                        <strong>{employee?.full_name}</strong>
+                        <strong>{payroll.employee_name}</strong>
                       </td>
 
                       <td>
                         <div className="payroll-period">
-                          <span>{payroll.period_start}</span>
-                          <small>al {payroll.period_end}</small>
+                          <span>{getPeriodLabel(payroll.period)}</span>
+                          <small>
+                            {Number(payroll.fortnight) === 1
+                              ? 'Primera quincena'
+                              : 'Segunda quincena'}
+                          </small>
                         </div>
                       </td>
 
                       <td className="team-money">
-                        {formatMoney(payroll.gross_salary)}
+                        {formatMoney(payroll.base_salary)}
                       </td>
 
                       <td>{formatMoney(payroll.isss)}</td>
                       <td>{formatMoney(payroll.afp)}</td>
-                      <td>{formatMoney(payroll.income_tax)}</td>
+                      <td>{formatMoney(payroll.isr)}</td>
 
                       <td className="payroll-net">
-                        {formatMoney(netSalary)}
+                        {formatMoney(payroll.net_salary)}
                       </td>
 
                       <td>
-                        <span className={`team-status ${
-                          payroll.status.toLowerCase()
-                        }`}>
-                          {payroll.status === 'PAID'
-                            ? 'Pagada'
-                            : 'Pendiente'}
-                        </span>
+                        <span className="team-status generated">Generada</span>
                       </td>
 
                       <td>
@@ -581,20 +584,26 @@ function TeamPage() {
                           type="button"
                           className="team-action view"
                           title="Ver planilla"
-                          aria-label="Ver planilla"
-                          disabled
+                          aria-label={`Ver planilla de ${payroll.employee_name}`}
+                          onClick={() => setSelectedPayroll(payroll)}
                         >
                           <Eye size={18} />
                         </button>
                       </td>
                     </tr>
-                  )
-                })}
+                ))}
 
-                {filteredPayrolls.length === 0 && (
+                {!loading && filteredPayrolls.length === 0 && (
                   <tr>
                     <td colSpan={9} className="inventory-empty">
                       No se encontraron planillas.
+                    </td>
+                  </tr>
+                )}
+                {loading && (
+                  <tr>
+                    <td colSpan={9} className="inventory-empty">
+                      Cargando planillas...
                     </td>
                   </tr>
                 )}
@@ -603,11 +612,65 @@ function TeamPage() {
           )}
         </div>
 
+        {activeTab === 'employees' && (
+          <nav className="team-pagination" aria-label="Paginación de empleados">
+            <span>
+              {filteredEmployees.length === 0
+                ? 'Sin resultados'
+                : `Mostrando ${(currentEmployeePage - 1) * EMPLOYEE_PAGE_SIZE + 1}–${Math.min(
+                    currentEmployeePage * EMPLOYEE_PAGE_SIZE,
+                    filteredEmployees.length
+                  )} de ${filteredEmployees.length} empleados`}
+            </span>
+            <div className="team-pagination-controls">
+              <button
+                type="button"
+                onClick={() => setEmployeePage(page => Math.max(1, page - 1))}
+                disabled={loading || currentEmployeePage <= 1}
+              >
+                Anterior
+              </button>
+              <span>Página {currentEmployeePage} de {totalEmployeePages}</span>
+              <button
+                type="button"
+                onClick={() => setEmployeePage(page => Math.min(totalEmployeePages, page + 1))}
+                disabled={loading || currentEmployeePage >= totalEmployeePages}
+              >
+                Siguiente
+              </button>
+            </div>
+          </nav>
+        )}
+
         <div className="inventory-panel-footer">
-          Mostrando {totalRecords}{' '}
-          {activeTab === 'employees' ? 'empleados' : 'registros de planilla'}
+          {activeTab === 'employees'
+            ? `${filteredEmployees.length} empleados`
+            : `${filteredPayrolls.length} registros de planilla`}
         </div>
       </section>
+
+      <PayrollForm
+        isOpen={isPayrollFormOpen}
+        toggle={() => setIsPayrollFormOpen(false)}
+        employees={employees}
+        onSubmit={handlePayrollSubmit}
+      />
+      {selectedEmployee && (
+        <EmployeeActionModal
+          employee={selectedEmployee}
+          branches={branches}
+          mode={employeeAction}
+          onClose={() => {
+            setSelectedEmployee(null)
+            setEmployeeAction(null)
+          }}
+          onSubmit={handleEmployeeUpdate}
+        />
+      )}
+      <PayrollDetailModal
+        payroll={selectedPayroll}
+        onClose={() => setSelectedPayroll(null)}
+      />
     </section>
   )
 }

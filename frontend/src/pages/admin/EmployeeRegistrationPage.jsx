@@ -1,30 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ArrowLeft, CheckCircle2, UserRoundPlus } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { getBranches } from '../../services/catalogService'
 import { registerEmployee } from '../../services/employeeService'
-
-const BRANCHES = [
-  { id: 1, name: 'Sucursal Centro Histórico' },
-  { id: 2, name: 'Sucursal Escalón' },
-  { id: 3, name: 'Sucursal Santa Elena' },
-  { id: 4, name: 'Sucursal Merliot' },
-  { id: 5, name: 'Sucursal San Benito' },
-  { id: 6, name: 'Sucursal Los Héroes' },
-  { id: 7, name: 'Sucursal Soyapango' },
-  { id: 8, name: 'Sucursal Lourdes' },
-  { id: 9, name: 'Sucursal Santa Ana Centro' },
-  { id: 10, name: 'Sucursal Metrocentro Santa Ana' },
-  { id: 11, name: 'Sucursal Sonsonate' },
-  { id: 12, name: 'Sucursal San Miguel Centro' },
-  { id: 13, name: 'Sucursal Roosevelt San Miguel' },
-  { id: 14, name: 'Sucursal Usulután' },
-  { id: 15, name: 'Sucursal La Unión' },
-  { id: 16, name: 'Sucursal Chalatenango' },
-  { id: 17, name: 'Sucursal Cojutepeque' },
-  { id: 18, name: 'Sucursal Zacatecoluca' },
-  { id: 19, name: 'Sucursal Ahuachapán' },
-  { id: 20, name: 'Sucursal San Vicente' },
-]
 
 const ROLES = ['GERENTE', 'CAJERO', 'COCINERO', 'BARISTA', 'PUPUSERA']
 
@@ -39,10 +17,22 @@ const INITIAL_FORM = {
 }
 
 function EmployeeRegistrationPage() {
+  const [branches, setBranches] = useState([])
+  const [branchesLoading, setBranchesLoading] = useState(true)
+  const [branchError, setBranchError] = useState('')
   const [formData, setFormData] = useState(INITIAL_FORM)
   const [errorMsg, setErrorMsg] = useState('')
   const [registeredEmployee, setRegisteredEmployee] = useState(null)
   const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    getBranches()
+      .then(setBranches)
+      .catch((error) => {
+        setBranchError(error.message || 'No se pudieron cargar las sucursales.')
+      })
+      .finally(() => setBranchesLoading(false))
+  }, [])
 
   const handleChange = (event) => {
     const { name, value } = event.target
@@ -93,6 +83,7 @@ function EmployeeRegistrationPage() {
       </div>
 
       {errorMsg && <div className="employee-alert error" role="alert">{errorMsg}</div>}
+      {branchError && <div className="employee-alert error" role="alert">{branchError}</div>}
 
       {registeredEmployee && (
         <div className="employee-alert success" role="status">
@@ -162,10 +153,13 @@ function EmployeeRegistrationPage() {
               name="branch_id"
               value={formData.branch_id}
               onChange={handleChange}
+              disabled={branchesLoading || branches.length === 0}
               required
             >
-              <option value="">Selecciona una sucursal</option>
-              {BRANCHES.map((branch) => (
+              <option value="">
+                {branchesLoading ? 'Cargando sucursales...' : 'Selecciona una sucursal'}
+              </option>
+              {branches.map((branch) => (
                 <option key={branch.id} value={branch.id}>{branch.name}</option>
               ))}
             </select>
@@ -217,7 +211,11 @@ function EmployeeRegistrationPage() {
 
         <div className="employee-form-footer">
           <span>El registro requiere permisos de gerente.</span>
-          <button type="submit" className="employee-submit" disabled={submitting}>
+          <button
+            type="submit"
+            className="employee-submit"
+            disabled={submitting || branchesLoading || branches.length === 0}
+          >
             {submitting ? 'Registrando...' : 'Registrar empleado'}
           </button>
         </div>

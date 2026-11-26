@@ -12,11 +12,98 @@
 }
 
 .team-filters.payroll {
-  grid-template-columns: 1.3fr 1fr 1fr;
+  grid-template-columns: 1.5fr 1fr;
+}
+
+.team-page-error {
+  padding: 12px 16px;
+  margin: 0 0 18px;
+  background: #f0e7e4;
+  color: #9c4545;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+}
+
+.team-page-success {
+  padding: 12px 16px;
+  margin: 0 0 18px;
+  background: #e7f0e7;
+  color: #386348;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+}
+
+.payroll-form-grid {
+  margin-top: 20px;
+}
+
+.team-status.generated {
+  background: #e7f0e7;
+  color: #386348;
+}
+
+.team-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 16px 0;
+  color: #766b5f;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.team-pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.team-pagination-controls button {
+  padding: 8px 12px;
+  background: var(--color-white);
+  border: 1px solid var(--color-text);
+  border-radius: 8px;
+  font: inherit;
+}
+
+.team-pagination-controls button:not(:disabled):hover {
+  background: var(--color-yellow);
+}
+
+.team-pagination-controls button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .team-table {
   min-width: 900px;
+}
+
+.team-table th:last-child,
+.team-table td:last-child,
+.payroll-table th:last-child,
+.payroll-table td:last-child {
+  position: sticky;
+  right: 0;
+  z-index: 1;
+}
+
+.team-table th:last-child,
+.payroll-table th:last-child {
+  z-index: 2;
+  background: #f4f1e9;
+}
+
+.team-table td:last-child,
+.payroll-table td:last-child {
+  background: var(--color-white);
+}
+
+.team-table tbody tr:hover td:last-child,
+.payroll-table tbody tr:hover td:last-child {
+  background: #faf8f2;
 }
 
 .payroll-table {
@@ -150,6 +237,43 @@
   cursor: not-allowed;
 }
 
+.team-action:focus-visible {
+  outline: 3px solid var(--color-fuchsia);
+  outline-offset: 2px;
+}
+
+.team-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.team-detail-grid > div {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 14px;
+  background: var(--color-white);
+  border: 1px solid #d5cec2;
+  border-radius: var(--radius-sm);
+}
+
+.team-detail-grid span {
+  color: #766b5f;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.team-detail-grid strong {
+  overflow-wrap: anywhere;
+}
+
+.employee-edit-grid {
+  margin-top: 20px;
+}
+
 .payroll-period {
   display: flex;
   flex-direction: column;
@@ -171,12 +295,13 @@
 }
 
 .team-page .inventory-table-wrapper {
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+  scrollbar-width: auto;
+  -ms-overflow-style: auto;
 }
 
 .team-page .inventory-table-wrapper::-webkit-scrollbar {
-  display: none;
+  display: block;
+  height: 8px;
 }
 
 .team-page a.inventory-primary-button {
@@ -199,5 +324,14 @@
   .team-tabs .sales-tab {
     flex: 1;
     justify-content: center;
+  }
+
+  .team-pagination {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .team-detail-grid {
+    grid-template-columns: 1fr;
   }
 }

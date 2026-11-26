@@ -1,40 +1,81 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Modal, ModalBody } from 'reactstrap'
 import { Store, X, Check } from 'lucide-react'
 import '../../styles/AdminForm.css'
+import RecipeIngredientEditor from './RecipeIngredientEditor'
 
 const INITIAL_FORM = {
   name: '',
   type: '',
   price: '',
-  description: ''
+  supplier_id: '',
+  unit_cost: '',
 }
 
-function CatalogForm({ isOpen, toggle, onSubmit }) {
+function CatalogForm({
+  isOpen,
+  toggle,
+  onSubmit,
+  suppliers,
+  suppliersError,
+  supplies,
+  suppliesError,
+}) {
   const [form, setForm] = useState(INITIAL_FORM)
+  const [ingredients, setIngredients] = useState([
+    { rowId: 1, supply_id: '', quantity: '' },
+  ])
+  const [error, setError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (isOpen) {
+      setForm(INITIAL_FORM)
+      setIngredients([{ rowId: 1, supply_id: '', quantity: '' }])
+      setError('')
+    }
+  }, [isOpen])
 
   const handleChange = event => {
     const { name, value } = event.target
-
-    setForm(previous => ({
-      ...previous,
-      [name]: value
-    }))
+    setForm(previous => ({ ...previous, [name]: value }))
   }
 
-  const handleSubmit = event => {
+  const handleSubmit = async event => {
     event.preventDefault()
+    setError('')
+    setIsSubmitting(true)
 
-    if (onSubmit) {
-      onSubmit(form)
+    try {
+      await onSubmit({
+        name: form.name.trim(),
+        price: Number(form.price),
+        productType: form.type,
+        supplierId: form.type === 'PACKAGED' ? Number(form.supplier_id) : null,
+        unitCost: form.type === 'PACKAGED' ? Number(form.unit_cost) : null,
+        ingredients:
+          form.type === 'PREPARED'
+            ? ingredients.map(({ supply_id, quantity }) => ({
+                id: Number(supply_id),
+                quantity: Number(quantity),
+              }))
+            : undefined,
+      })
+    } catch (submitError) {
+      setError(submitError.message || 'No se pudo registrar el producto.')
+    } finally {
+      setIsSubmitting(false)
     }
   }
+
+  const isPackaged = form.type === 'PACKAGED'
 
   return (
     <Modal
       isOpen={isOpen}
       toggle={toggle}
       centered
+      scrollable
       size="lg"
       className="admin-form-modal"
     >
@@ -60,14 +101,13 @@ function CatalogForm({ isOpen, toggle, onSubmit }) {
         </div>
 
         <p className="admin-form-description">
-          Agregá un nuevo producto al menú de Orígenes SV.
+          Los productos preparados requieren receta; los empaquetados requieren proveedor y costo.
         </p>
 
         <form onSubmit={handleSubmit}>
           <div className="admin-form-grid">
             <label className="admin-form-field wide">
               <span>Nombre del producto</span>
-
               <input
                 name="name"
                 value={form.name}
@@ -79,7 +119,6 @@ function CatalogForm({ isOpen, toggle, onSubmit }) {
 
             <label className="admin-form-field">
               <span>Tipo de producto</span>
-
               <select
                 name="type"
                 value={form.type}
@@ -94,7 +133,6 @@ function CatalogForm({ isOpen, toggle, onSubmit }) {
 
             <label className="admin-form-field">
               <span>Precio de venta ($)</span>
-
               <input
                 type="number"
                 name="price"
@@ -107,24 +145,75 @@ function CatalogForm({ isOpen, toggle, onSubmit }) {
               />
             </label>
 
-            <label className="admin-form-field wide">
-              <span>Descripción</span>
+            {isPackaged && (
+              <>
+                <label className="admin-form-field">
+                  <span>Proveedor</span>
+                  <select
+                    name="supplier_id"
+                    value={form.supplier_id}
+                    onChange={handleChange}
+                    required
+                  >
+                    <option value="">Seleccionar proveedor</option>
+                    {suppliers.map(supplier => (
+                      <option key={supplier.id} value={supplier.id}>
+                        {supplier.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
 
-              <textarea
-                name="description"
-                value={form.description}
-                onChange={handleChange}
-                placeholder="Escribí una breve descripción del producto..."
-                rows={4}
-              />
-            </label>
+                <label className="admin-form-field">
+                  <span>Costo unitario ($)</span>
+                  <input
+                    type="number"
+                    name="unit_cost"
+                    value={form.unit_cost}
+                    onChange={handleChange}
+                    placeholder="0.00"
+                    min="0.01"
+                    step="0.01"
+                    required
+                  />
+                </label>
+              </>
+            )}
           </div>
+
+          {form.type === 'PREPARED' && (
+            <RecipeIngredientEditor
+              ingredients={ingredients}
+              supplies={supplies}
+              onChange={setIngredients}
+              disabled={isSubmitting}
+            />
+          )}
+
+          {form.type === 'PREPARED' && suppliesError && (
+            <p className="admin-form-error" role="alert">{suppliesError}</p>
+          )}
+          {form.type === 'PREPARED' && !suppliesError && supplies.length === 0 && (
+            <p className="admin-form-error" role="alert">
+              Registrá insumos en el inventario antes de crear productos preparados.
+            </p>
+          )}
+          {isPackaged && suppliersError && (
+            <p className="admin-form-error" role="alert">{suppliersError}</p>
+          )}
+          {isPackaged && !suppliersError && suppliers.length === 0 && (
+            <p className="admin-form-error" role="alert">
+              Registrá un proveedor antes de crear productos empaquetados.
+            </p>
+          )}
+          {error && <p className="admin-form-error" role="alert">{error}</p>}
 
           <div className="admin-form-footer">
             <button
               type="button"
               className="admin-form-cancel"
               onClick={toggle}
+              disabled={isSubmitting}
             >
               Cancelar
             </button>
@@ -132,11 +221,14 @@ function CatalogForm({ isOpen, toggle, onSubmit }) {
             <button
               type="submit"
               className="admin-form-submit"
-              disabled={!onSubmit}
-              title={!onSubmit ? 'Pendiente de conexión' : undefined}
+              disabled={
+                isSubmitting ||
+                (isPackaged && !suppliers.length) ||
+                (form.type === 'PREPARED' && (!supplies.length || suppliesError))
+              }
             >
               <Check size={18} />
-              Registrar producto
+              {isSubmitting ? 'Guardando...' : 'Registrar producto'}
             </button>
           </div>
         </form>

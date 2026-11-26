@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Modal, ModalBody } from 'reactstrap'
 import { PackagePlus, X, Check } from 'lucide-react'
 import '../../styles/AdminForm.css'
@@ -9,27 +9,51 @@ const INITIAL_FORM = {
   branch_id: '',
   quantity: '',
   min_stock: '',
-  unit_cost: '',
-  supplier_id: ''
+  supplier_id: '',
 }
 
-function ProductForm({ isOpen, toggle, onSubmit }) {
+function ProductForm({
+  isOpen,
+  toggle,
+  onSubmit,
+  branches,
+  suppliers,
+  suppliersError,
+  initialBranchId,
+}) {
   const [form, setForm] = useState(INITIAL_FORM)
+  const [error, setError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (isOpen) {
+      setForm({ ...INITIAL_FORM, branch_id: initialBranchId || '' })
+      setError('')
+    }
+  }, [isOpen, initialBranchId])
 
   const handleChange = event => {
     const { name, value } = event.target
-
-    setForm(previous => ({
-      ...previous,
-      [name]: value
-    }))
+    setForm(previous => ({ ...previous, [name]: value }))
   }
 
-  const handleSubmit = event => {
+  const handleSubmit = async event => {
     event.preventDefault()
+    setError('')
+    setIsSubmitting(true)
 
-    if (onSubmit) {
-      onSubmit(form)
+    try {
+      await onSubmit({
+        ...form,
+        branch_id: Number(form.branch_id),
+        supplier_id: Number(form.supplier_id),
+        quantity: Number(form.quantity),
+        min_stock: Number(form.min_stock),
+      })
+    } catch (submitError) {
+      setError(submitError.message || 'No se pudo registrar el insumo.')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -49,7 +73,7 @@ function ProductForm({ isOpen, toggle, onSubmit }) {
 
           <div>
             <span className="admin-eyebrow">INVENTARIO</span>
-            <h2>Nuevo insumo</h2>
+            <h2>Agregar insumo</h2>
           </div>
 
           <button
@@ -63,7 +87,7 @@ function ProductForm({ isOpen, toggle, onSubmit }) {
         </div>
 
         <p className="admin-form-description">
-          Completá la información para registrar un nuevo insumo.
+          Registrá un insumo o agregá existencias en la sucursal seleccionada.
         </p>
 
         <form onSubmit={handleSubmit}>
@@ -105,20 +129,24 @@ function ProductForm({ isOpen, toggle, onSubmit }) {
                 required
               >
                 <option value="">Seleccionar sucursal</option>
-                <option value="1">Centro Histórico</option>
+                {branches.map(branch => (
+                  <option key={branch.id} value={branch.id}>
+                    {branch.name}
+                  </option>
+                ))}
               </select>
             </label>
 
             <label className="admin-form-field">
-              <span>Cantidad inicial</span>
+              <span>Cantidad a ingresar</span>
               <input
                 type="number"
                 name="quantity"
                 value={form.quantity}
                 onChange={handleChange}
                 placeholder="0.00"
-                min="0"
-                step="0.01"
+                min="0.001"
+                step="0.001"
                 required
               />
             </label>
@@ -132,26 +160,12 @@ function ProductForm({ isOpen, toggle, onSubmit }) {
                 onChange={handleChange}
                 placeholder="0.00"
                 min="0"
-                step="0.01"
+                step="0.001"
                 required
               />
             </label>
 
-            <label className="admin-form-field">
-              <span>Costo unitario ($)</span>
-              <input
-                type="number"
-                name="unit_cost"
-                value={form.unit_cost}
-                onChange={handleChange}
-                placeholder="0.00"
-                min="0"
-                step="0.01"
-                required
-              />
-            </label>
-
-            <label className="admin-form-field">
+            <label className="admin-form-field wide">
               <span>Proveedor</span>
               <select
                 name="supplier_id"
@@ -160,16 +174,28 @@ function ProductForm({ isOpen, toggle, onSubmit }) {
                 required
               >
                 <option value="">Seleccionar proveedor</option>
-                <option value="1">Proveedor de ejemplo</option>
+                {suppliers.map(supplier => (
+                  <option key={supplier.id} value={supplier.id}>
+                    {supplier.name}
+                  </option>
+                ))}
               </select>
+              {suppliersError ? (
+                <small className="admin-form-error">{suppliersError}</small>
+              ) : suppliers.length === 0 ? (
+                <small>No hay proveedores registrados.</small>
+              ) : null}
             </label>
           </div>
+
+          {error && <p className="admin-form-error" role="alert">{error}</p>}
 
           <div className="admin-form-footer">
             <button
               type="button"
               className="admin-form-cancel"
               onClick={toggle}
+              disabled={isSubmitting}
             >
               Cancelar
             </button>
@@ -177,11 +203,10 @@ function ProductForm({ isOpen, toggle, onSubmit }) {
             <button
               type="submit"
               className="admin-form-submit"
-              disabled={!onSubmit}
-              title={!onSubmit ? 'Pendiente de conexión' : undefined}
+              disabled={isSubmitting || !branches.length || !suppliers.length}
             >
               <Check size={18} />
-              Registrar insumo
+              {isSubmitting ? 'Guardando...' : 'Registrar insumo'}
             </button>
           </div>
         </form>

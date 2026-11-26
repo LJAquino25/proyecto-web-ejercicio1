@@ -1,0 +1,93 @@
+import { apiRequest } from './api'
+
+export async function getBranchInventory(branchId) {
+  const data = await apiRequest(`/inventory/products?branch_id=${branchId}`)
+  if (!Array.isArray(data)) {
+    throw new Error('La respuesta del inventario no es válida.')
+  }
+  return data
+}
+
+export async function addInventorySupply({
+  name,
+  unit,
+  branch_id,
+  supplier_id,
+  quantity,
+  min_stock,
+}) {
+  return apiRequest('/inventory/products', {
+    method: 'POST',
+    body: JSON.stringify({
+      name,
+      unit,
+      branch_id,
+      supplier_id,
+      quantity,
+      min_stock,
+    }),
+  })
+}
+
+export async function getInventorySupplies() {
+  const data = await apiRequest('/inventory/supplies')
+  if (!Array.isArray(data)) {
+    throw new Error('La respuesta de insumos no es válida.')
+  }
+  return data
+}
+
+export async function getInventoryRecipes() {
+  const data = await apiRequest('/inventory/recipes')
+  if (!Array.isArray(data)) {
+    throw new Error('La respuesta de recetas no es válida.')
+  }
+  return data
+}
+
+export async function createInventoryRecipe({
+  product_id,
+  name,
+  ingredients,
+}) {
+  return apiRequest('/inventory/recipes', {
+    method: 'POST',
+    body: JSON.stringify({ product_id, name, ingredients }),
+  })
+}
+
+export async function addCatalogProduct({
+  name,
+  price,
+  productType,
+  supplierId,
+  unitCost,
+  ingredients,
+}) {
+  return apiRequest('/inventory/catalog', {
+    method: 'POST',
+    body: JSON.stringify({
+      name,
+      price,
+      productType,
+      supplierId,
+      unitCost,
+      ingredients,
+    }),
+  })
+}
+
+export async function prepareInventoryRecipe({ id, quantity, branch_id }) {
+  return apiRequest('/inventory/prepare', {
+    method: 'POST',
+    body: JSON.stringify({ id, quantity, branch_id }),
+  })
+}
+
+export async function getSuppliers() {
+  const data = await apiRequest('/purchases/supplier')
+  if (!Array.isArray(data?.suppliers)) {
+    throw new Error('La respuesta de proveedores no es válida.')
+  }
+  return data.suppliers
+}

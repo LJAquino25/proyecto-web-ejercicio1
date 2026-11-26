@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -6,71 +6,127 @@ import {
   Package,
   CheckCircle2,
   TriangleAlert,
-  Search
+  Search,
 } from 'lucide-react'
 
 import '../../styles/InventoryPage.css'
 import ProductForm from '../../components/admin/ProductForm'
+import { getBranches } from '../../services/catalogService'
+import {
+  addInventorySupply,
+  getBranchInventory,
+  getSuppliers,
+} from '../../services/inventoryService'
 
-const PRODUCTS = [
-  { id: 1, name: 'Harina de maíz', quantity: 45, unit: 'kg', min_stock: 10 },
-  { id: 2, name: 'Queso', quantity: 3, unit: 'kg', min_stock: 5 },
-  { id: 3, name: 'Café molido', quantity: 18, unit: 'kg', min_stock: 5 },
-  { id: 4, name: 'Aceite', quantity: 2, unit: 'L', min_stock: 5 },
-  { id: 5, name: 'Azúcar', quantity: 25, unit: 'kg', min_stock: 8 }
-]
+const formatQuantity = value =>
+  new Intl.NumberFormat('es-SV', { maximumFractionDigits: 3 }).format(
+    Number(value)
+  )
 
 function InventoryPage() {
   const [searchTerm, setSearchTerm] = useState('')
-  const [branchId, setBranchId] = useState('1')
+  const [branchId, setBranchId] = useState('')
+  const [branches, setBranches] = useState([])
+  const [suppliers, setSuppliers] = useState([])
+  const [branchError, setBranchError] = useState('')
+  const [supplierError, setSupplierError] = useState('')
   const [stockFilter, setStockFilter] = useState('ALL')
+  const [products, setProducts] = useState([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [loadError, setLoadError] = useState('')
   const [isFormOpen, setIsFormOpen] = useState(false)
+  const inventoryRequestId = useRef(0)
 
-const toggleForm = () => {
-  setIsFormOpen(previous => !previous)
-}
+  const loadInventory = useCallback(async selectedBranchId => {
+    const requestId = ++inventoryRequestId.current
+    setIsLoading(true)
+    setLoadError('')
+    setProducts([])
+    try {
+      const inventory = await getBranchInventory(selectedBranchId)
+      if (requestId === inventoryRequestId.current) setProducts(inventory)
+    } catch (error) {
+      if (requestId === inventoryRequestId.current) {
+        setLoadError(error.message || 'No se pudo cargar el inventario.')
+      }
+    } finally {
+      if (requestId === inventoryRequestId.current) setIsLoading(false)
+    }
+  }, [])
 
-  const lowStock = PRODUCTS.filter(
-    product => product.quantity <= product.min_stock
+  useEffect(() => {
+    let active = true
+    getBranches()
+      .then(data => {
+        if (!active) return
+        setBranches(data)
+        if (data.length) {
+          setBranchId(String(data[0].id))
+        } else {
+          setBranchError('No hay sucursales registradas.')
+        }
+      })
+      .catch(error => {
+        if (active) setBranchError(error.message || 'No se pudieron cargar las sucursales.')
+      })
+
+    getSuppliers()
+      .then(data => {
+        if (active) setSuppliers(data)
+      })
+      .catch(error => {
+        if (active) setSupplierError(error.message || 'No se pudieron cargar los proveedores.')
+      })
+
+    return () => {
+      active = false
+    }
+  }, [])
+
+  useEffect(() => {
+    if (branchId) {
+      loadInventory(branchId)
+    } else {
+      setProducts([])
+    }
+  }, [branchId, loadInventory])
+
+  const lowStock = products.filter(
+    product => Number(product.quantity) <= Number(product.min_stock)
   ).length
 
   const statistics = [
-    {
-      label: 'Total de insumos',
-      value: PRODUCTS.length,
-      icon: Package,
-      color: 'blue'
-    },
-    {
-      label: 'Stock disponible',
-      value: PRODUCTS.length - lowStock,
-      icon: CheckCircle2,
-      color: 'yellow'
-    },
-    {
-      label: 'Stock bajo',
-      value: lowStock,
-      icon: TriangleAlert,
-      color: 'pink'
-    }
+    { label: 'Total de insumos', value: products.length, icon: Package, color: 'blue' },
+    { label: 'Stock disponible', value: products.length - lowStock, icon: CheckCircle2, color: 'yellow' },
+    { label: 'Stock bajo', value: lowStock, icon: TriangleAlert, color: 'pink' },
   ]
 
   const filteredProducts = useMemo(() => {
-    return PRODUCTS.filter(product => {
+    return products.filter(product => {
       const matchesSearch = product.name
         .toLowerCase()
         .includes(searchTerm.toLowerCase())
-
-      const isLowStock = product.quantity <= product.min_stock
-
+      const isLowStock = Number(product.quantity) <= Number(product.min_stock)
       const matchesStock =
         stockFilter === 'ALL' ||
         (stockFilter === 'LOW' && isLowStock) ||
         (stockFilter === 'AVAILABLE' && !isLowStock)
-
       return matchesSearch && matchesStock
     })
-  }, [searchTerm, stockFilter])
+  }, [products, searchTerm, stockFilter])
+
+  const handleAddSupply = async form => {
+    await addInventorySupply(form)
+    setIsFormOpen(false)
+    const newBranchId = String(form.branch_id)
+    if (newBranchId !== branchId) {
+      setBranchId(newBranchId)
+    } else {
+      await loadInventory(newBranchId)
+    }
+  }
+
+  const toggleForm = () => setIsFormOpen(previous => !previous)
 
   return (
     <section className="inventory-page">
@@ -83,36 +139,32 @@ const toggleForm = () => {
         <div>
           <span className="admin-eyebrow">INVENTARIO</span>
           <h1>Existencias</h1>
-          <p>
-            Consultá y administrá los insumos de cada sucursal.
-          </p>
+          <p>Consultá y administrá los insumos de cada sucursal.</p>
         </div>
 
         <button
-  type="button"
-  className="inventory-primary-button"
-  onClick={toggleForm}
->
-  <Plus size={20} />
-  Agregar insumo
-</button>
+          type="button"
+          className="inventory-primary-button"
+          onClick={toggleForm}
+          disabled={!branches.length}
+        >
+          <Plus size={20} />
+          Agregar insumo
+        </button>
       </div>
+
+      {branchError && <p className="inventory-empty" role="alert">{branchError}</p>}
 
       <div className="inventory-stats">
         {statistics.map(stat => {
           const StatIcon = stat.icon
-
           return (
-            <article
-              className="inventory-stat-card"
-              key={stat.label}
-            >
+            <article className="inventory-stat-card" key={stat.label}>
               <span className={`inventory-stat-icon ${stat.color}`}>
                 <StatIcon size={24} />
               </span>
-
               <div>
-                <strong>{stat.value}</strong>
+                <strong>{isLoading ? '—' : stat.value}</strong>
                 <span>{stat.label}</span>
               </div>
             </article>
@@ -129,21 +181,24 @@ const toggleForm = () => {
         <div className="inventory-filters">
           <label className="inventory-field">
             <span>Sucursal</span>
-
             <select
               value={branchId}
               onChange={event => setBranchId(event.target.value)}
+              disabled={!branches.length}
             >
-              <option value="1">Sucursal Centro Histórico</option>
+              <option value="">Seleccionar sucursal</option>
+              {branches.map(branch => (
+                <option key={branch.id} value={branch.id}>
+                  {branch.name}
+                </option>
+              ))}
             </select>
           </label>
 
           <label className="inventory-field">
             <span>Buscar insumo</span>
-
             <div className="inventory-search">
               <Search size={19} />
-
               <input
                 type="search"
                 placeholder="Buscar por nombre..."
@@ -155,7 +210,6 @@ const toggleForm = () => {
 
           <label className="inventory-field">
             <span>Estado</span>
-
             <select
               value={stockFilter}
               onChange={event => setStockFilter(event.target.value)}
@@ -166,6 +220,8 @@ const toggleForm = () => {
             </select>
           </label>
         </div>
+
+        {loadError && <p className="inventory-empty" role="alert">{loadError}</p>}
 
         <div className="inventory-table-wrapper">
           <table className="inventory-table">
@@ -178,45 +234,32 @@ const toggleForm = () => {
                 <th>Estado</th>
               </tr>
             </thead>
-
             <tbody>
               {filteredProducts.map(product => {
                 const isLowStock =
-                  product.quantity <= product.min_stock
-
+                  Number(product.quantity) <= Number(product.min_stock)
                 return (
                   <tr key={product.id}>
-                    <td>
-                      <strong>{product.name}</strong>
-                    </td>
-
-                    <td>{product.quantity}</td>
+                    <td><strong>{product.name}</strong></td>
+                    <td>{formatQuantity(product.quantity)}</td>
                     <td>{product.unit}</td>
-                    <td>{product.min_stock}</td>
-
+                    <td>{formatQuantity(product.min_stock)}</td>
                     <td>
-                      <span
-                        className={`inventory-status ${
-                          isLowStock ? 'low' : 'available'
-                        }`}
-                      >
-                        {isLowStock ? (
-                          <TriangleAlert size={14} />
-                        ) : (
-                          <CheckCircle2 size={14} />
-                        )}
-
+                      <span className={`inventory-status ${isLowStock ? 'low' : 'available'}`}>
+                        {isLowStock ? <TriangleAlert size={14} /> : <CheckCircle2 size={14} />}
                         {isLowStock ? 'Stock bajo' : 'Disponible'}
                       </span>
                     </td>
                   </tr>
                 )
               })}
-
-              {filteredProducts.length === 0 && (
+              {isLoading && (
+                <tr><td colSpan={5} className="inventory-empty">Cargando existencias...</td></tr>
+              )}
+              {!isLoading && !loadError && filteredProducts.length === 0 && (
                 <tr>
                   <td colSpan={5} className="inventory-empty">
-                    No se encontraron insumos.
+                    No se encontraron insumos para esta sucursal.
                   </td>
                 </tr>
               )}
@@ -225,13 +268,19 @@ const toggleForm = () => {
         </div>
 
         <div className="inventory-panel-footer">
-          Mostrando {filteredProducts.length} de {PRODUCTS.length} insumos
+          Mostrando {filteredProducts.length} de {products.length} insumos
         </div>
       </section>
+
       <ProductForm
-  isOpen={isFormOpen}
-  toggle={toggleForm}
-/>
+        isOpen={isFormOpen}
+        toggle={toggleForm}
+        onSubmit={handleAddSupply}
+        branches={branches}
+        suppliers={suppliers}
+        suppliersError={supplierError}
+        initialBranchId={branchId}
+      />
     </section>
   )
 }

@@ -46,8 +46,14 @@
 
 .recipe-form-ingredient-grid {
   display: grid;
-  grid-template-columns: 1.5fr 0.8fr 1fr;
+  grid-template-columns: 1.5fr 1fr;
   gap: 14px;
+}
+
+.recipe-unit-note {
+  color: #766b5f;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .recipe-form-remove {
@@ -97,11 +103,7 @@
 
 @media (max-width: 576px) {
   .recipe-form-ingredient-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .recipe-form-ingredient-grid > label:first-child {
-    grid-column: 1 / -1;
+    grid-template-columns: 1fr;
   }
 
   .recipe-form-ingredient {

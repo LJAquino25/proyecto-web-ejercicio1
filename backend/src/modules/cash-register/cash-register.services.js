@@ -3,10 +3,7 @@ const {
   findOpenCashSession,
   findCashRegisterById,
   findCashRegisterByBranchName,
-  findFirstCashRegister,
   findEmployeeById,
-  findEmployeeByFullName,
-  findFirstActiveEmployee,
   insertCashSession,
   closeCashSessionInDb,
   incrementCashSessionSaleColumn
@@ -49,7 +46,10 @@ const normalizePaymentMethod = (rawMethod) => {
       "chivo_wallet",
       "crypto",
       "pago digital",
-      "digital"
+      "digital",
+      "transfer",
+      "transferencia",
+      "bank transfer"
     ].includes(normalized)
   ) {
     return "bitcoinChivo";
@@ -104,7 +104,6 @@ const mapRowToShift = (row) => {
 
 const resolveCashRegisterAndEmployee = async ({
   branch = "Main Branch",
-  cashier = "Shift Cashier",
   cashRegisterId = null,
   employeeId = null
 }) => {
@@ -116,32 +115,25 @@ const resolveCashRegisterAndEmployee = async ({
     registerRow = await findCashRegisterByBranchName(branch);
   }
 
-  if (!registerRow) {
-    registerRow = await findFirstCashRegister();
-  }
-
   let employeeRow = null;
 
   if (employeeId) {
     employeeRow = await findEmployeeById(employeeId);
-  } else if (cashier) {
-    employeeRow = await findEmployeeByFullName(cashier);
-  }
-
-  if (!employeeRow) {
-    employeeRow = await findFirstActiveEmployee();
   }
 
   return {
     cashRegisterId: registerRow ? registerRow.id : null,
-    employeeId: employeeRow ? employeeRow.id : null
+    cashRegisterBranchId: registerRow ? registerRow.branch_id : null,
+    employeeId: employeeRow ? employeeRow.id : null,
+    employeeBranchId: employeeRow ? employeeRow.branch_id : null,
+    employeeRole: employeeRow ? employeeRow.role : null,
+    employeeIsActive: employeeRow ? employeeRow.is_active : false
   };
 };
 
 const openShiftService = async ({
   openingAmount,
   branch = "Main Branch",
-  cashier = "Shift Cashier",
   cashRegisterId = null,
   employeeId = null,
   notes = ""
@@ -158,7 +150,59 @@ const openShiftService = async ({
     };
   }
 
-  const openRow = await findOpenCashSession(branch);
+  const resolved = await resolveCashRegisterAndEmployee({
+    branch,
+    cashRegisterId,
+    employeeId
+  });
+
+  if (!resolved.cashRegisterId) {
+    return {
+      statusCode: 404,
+      payload: {
+        ok: false,
+        message: `No hay una caja configurada para la sucursal "${branch}".`
+      }
+    };
+  }
+
+  if (!resolved.employeeId) {
+    return {
+      statusCode: 400,
+      payload: {
+        ok: false,
+        message: "No se encontró el empleado autenticado para abrir la caja."
+      }
+    };
+  }
+
+  if (
+    String(resolved.employeeRole).toUpperCase() !== "CAJERO" ||
+    !resolved.employeeIsActive
+  ) {
+    return {
+      statusCode: 403,
+      payload: {
+        ok: false,
+        message: "Solo los empleados activos con cargo de cajero pueden abrir la caja."
+      }
+    };
+  }
+
+  if (Number(resolved.employeeBranchId) !== Number(resolved.cashRegisterBranchId)) {
+    return {
+      statusCode: 403,
+      payload: {
+        ok: false,
+        message: "Solo podés abrir la caja de la sucursal a la que pertenecés."
+      }
+    };
+  }
+
+  const openRow = await findOpenCashSession(
+    null,
+    resolved.cashRegisterBranchId
+  );
   const existingOpen = mapRowToShift(openRow);
 
   if (existingOpen) {
@@ -168,24 +212,6 @@ const openShiftService = async ({
         ok: false,
         message: `There is already an open cash register for "${existingOpen.branch}".`,
         openRegister: existingOpen
-      }
-    };
-  }
-
-  const resolved = await resolveCashRegisterAndEmployee({
-    branch,
-    cashier,
-    cashRegisterId,
-    employeeId
-  });
-
-  if (!resolved.cashRegisterId || !resolved.employeeId) {
-    return {
-      statusCode: 400,
-      payload: {
-        ok: false,
-        message:
-          "Missing valid cash_register or active employee in the database to open the shift."
       }
     };
   }
@@ -214,6 +240,7 @@ const closeShiftService = async ({
   declaredCard = null,
   declaredDigital = null,
   branch = null,
+  employeeId = null,
   notes = ""
 }) => {
   const physicalCash = Number(countedCash);
@@ -238,6 +265,31 @@ const closeShiftService = async ({
       payload: {
         ok: false,
         message: "There is no open cash register to close."
+      }
+    };
+  }
+
+  const employee = employeeId ? await findEmployeeById(employeeId) : null;
+  if (
+    !employee ||
+    !employee.is_active ||
+    String(employee.role).toUpperCase() !== "CAJERO"
+  ) {
+    return {
+      statusCode: 403,
+      payload: {
+        ok: false,
+        message: "Solo los empleados activos con cargo de cajero pueden cerrar la caja."
+      }
+    };
+  }
+
+  if (Number(employee.branch_id) !== Number(openShift.branchId)) {
+    return {
+      statusCode: 403,
+      payload: {
+        ok: false,
+        message: "Solo podés cerrar la caja de la sucursal a la que pertenecés."
       }
     };
   }
@@ -326,7 +378,8 @@ const getShiftHistoryService = async ({ status = null, branch = null } = {}) => 
 const registerSaleToOpenShift = async ({
   amount,
   paymentMethod,
-  branch = null
+  branch = null,
+  branchId = null
 }) => {
   const numericAmount = Number(amount);
   const methodKey = normalizePaymentMethod(paymentMethod);
@@ -350,7 +403,9 @@ const registerSaleToOpenShift = async ({
     };
   }
 
-  const openRow = await findOpenCashSession(branch);
+  const openRow = branchId
+    ? await findOpenCashSession(null, branchId)
+    : await findOpenCashSession(branch);
   const openShift = mapRowToShift(openRow);
 
   if (!openShift) {

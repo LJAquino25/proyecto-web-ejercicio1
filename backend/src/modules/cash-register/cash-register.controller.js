@@ -8,7 +8,10 @@ const {
 // POST /api/cash-register/open
 const openCashRegister = async (req, res) => {
   try {
-    const result = await openShiftService(req.body);
+    const result = await openShiftService({
+      ...req.body,
+      employeeId: req.user.id
+    });
     return res.status(result.statusCode).json(result.payload);
   } catch (error) {
     return res.status(500).json({
@@ -22,7 +25,10 @@ const openCashRegister = async (req, res) => {
 // POST /api/cash-register/close
 const closeCashRegister = async (req, res) => {
   try {
-    const result = await closeShiftService(req.body);
+    const result = await closeShiftService({
+      ...req.body,
+      employeeId: req.user.id
+    });
     return res.status(result.statusCode).json(result.payload);
   } catch (error) {
     return res.status(500).json({

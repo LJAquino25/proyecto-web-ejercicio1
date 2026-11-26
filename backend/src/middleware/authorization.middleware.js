@@ -8,6 +8,19 @@ const requireEmployee = (req, res, next) => {
   next();
 };
 
+const requireCashier = (req, res, next) => {
+  if (
+    req.user?.accountType !== "employee" ||
+    String(req.user.role || "").toUpperCase() !== "CAJERO"
+  ) {
+    return res.status(403).json({
+      message: "Solo los empleados con cargo de cajero pueden operar la caja."
+    });
+  }
+
+  next();
+};
+
 const requireAdmin = (req, res, next) => {
   if (req.user?.accountType !== "employee") {
     return res.status(403).json({
@@ -34,6 +47,7 @@ const requireCustomer = (req, res, next) => {
 
 module.exports = {
   requireEmployee,
+  requireCashier,
   requireAdmin,
   requireCustomer
 };

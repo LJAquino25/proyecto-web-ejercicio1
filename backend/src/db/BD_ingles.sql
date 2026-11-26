@@ -276,7 +276,7 @@ CREATE TABLE customer_order (
     status        VARCHAR(15) NOT NULL DEFAULT 'CART'
                   CHECK (status IN ('CART', 'PAID', 'IN_PREPARATION',
                                     'DELIVERED', 'CANCELLED')),
-    created_at    TIMESTAMP NOT NULL DEFAULT NOW(),
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     subtotal      NUMERIC(10,2) NOT NULL DEFAULT 0 CHECK (subtotal >= 0),
     tax           NUMERIC(10,2) NOT NULL DEFAULT 0 CHECK (tax >= 0), -- IVA 13%
     total         NUMERIC(10,2) NOT NULL DEFAULT 0 CHECK (total >= 0),

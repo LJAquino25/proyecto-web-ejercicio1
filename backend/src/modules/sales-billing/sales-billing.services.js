@@ -292,7 +292,8 @@ const createInvoiceInDb = async ({
         if (isCashPayment) {
             cashIntegration = await registerSaleToOpenShift({
                 amount: total,
-                paymentMethod
+                paymentMethod,
+                branchId: orderRows[0].branch_id
             });
 
             if (!cashIntegration.ok) {
@@ -308,7 +309,8 @@ const createInvoiceInDb = async ({
         } else if (paymentMethod) {
             cashIntegration = await registerSaleToOpenShift({
                 amount: total,
-                paymentMethod
+                paymentMethod,
+                branchId: orderRows[0].branch_id
             });
 
             if (cashIntegration.ok && !resolvedCashSessionId && cashIntegration.shift?.id) {

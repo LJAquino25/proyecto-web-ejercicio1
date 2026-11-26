@@ -9,7 +9,7 @@ const customerEmail = async ({ email }) => {
 }
 const employeeEmail = async ({ email }) => {
     const result = await pool.query(
-        `SELECT id, role, email, password_hash FROM employee
+        `SELECT id, role, branch_id, is_active, email, password_hash FROM employee
           WHERE email = $1`
         , [email])
     return result.rows[0];

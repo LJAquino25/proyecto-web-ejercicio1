@@ -31,7 +31,9 @@ const login = async ({ email, password }) => {
         )
         return {
             token,
-            accountType: "employee"
+            accountType: "employee",
+            role: employee.role,
+            branchId: employee.branch_id
         }
     }
 

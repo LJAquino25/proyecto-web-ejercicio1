@@ -1,3 +1,12 @@
+.cash-form-error {
+  padding: 12px 16px;
+  margin: 18px 0 0;
+  background: #f0e7e4;
+  color: #9c4545;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+}
+
 .cash-form-information {
   display: flex;
   flex-direction: column;

@@ -18,25 +18,29 @@ function CashRegisterForm({
   isOpen,
   toggle,
   mode,
-  branchId,
   branchName,
   currentRegister,
   onSubmit
 }) {
   const [amount, setAmount] = useState('')
   const [notes, setNotes] = useState('')
+  const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
   const isClosing = mode === 'close'
 
-  const openingAmount = currentRegister?.opening_amount || 0
-  const cashIncome = currentRegister?.cash || 0
-  const expectedCash = openingAmount + cashIncome
+  const openingAmount = Number(currentRegister?.openingAmount || 0)
+  const cashIncome = Number(currentRegister?.salesByMethod?.cash || 0)
+  const expectedCash = Number(
+    currentRegister?.expectedCash ?? openingAmount + cashIncome
+  )
 
   const difference = Math.round(
     (Number(amount) - expectedCash) * 100
   ) / 100
 
-  const hasAmount = amount !== '' && Number(amount) >= 0
+  const hasAmount =
+    amount !== '' && Number.isFinite(Number(amount)) && Number(amount) >= 0
 
   const differenceStatus =
     difference === 0
@@ -55,25 +59,34 @@ function CashRegisterForm({
   const handleClose = () => {
     setAmount('')
     setNotes('')
+    setError('')
     toggle()
   }
 
-  const handleSubmit = event => {
+  const handleSubmit = async event => {
     event.preventDefault()
 
     if (!onSubmit || !hasAmount) return
 
-    if (isClosing) {
-      onSubmit({
-        cash_register_id: currentRegister.id,
-        closing_amount: Number(amount),
-        notes
-      })
-    } else {
-      onSubmit({
-        branch_id: Number(branchId),
-        opening_amount: Number(amount)
-      })
+    setError('')
+    setSubmitting(true)
+    try {
+      if (isClosing) {
+        await onSubmit({
+          countedCash: Number(amount),
+          notes
+        })
+      } else {
+        await onSubmit({
+          openingAmount: Number(amount)
+        })
+      }
+      setAmount('')
+      setNotes('')
+    } catch (submitError) {
+      setError(submitError.message || 'No se pudo completar la operación de caja.')
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -135,9 +148,11 @@ function CashRegisterForm({
 
               <span>Empleado</span>
 
-              <strong>Usuario en sesión</strong>
+              <strong>{currentRegister?.cashier || 'Empleado autenticado'}</strong>
             </div>
           </div>
+
+          {error && <p className="cash-form-error" role="alert">{error}</p>}
 
           {isClosing && (
             <div className="cash-form-expected">
@@ -247,15 +262,15 @@ function CashRegisterForm({
               disabled={
                 !onSubmit ||
                 !hasAmount ||
+                submitting ||
                 (isClosing && !currentRegister)
               }
-              title={!onSubmit ? 'Pendiente de conexión' : undefined}
             >
               <Check size={18} />
 
               {isClosing
-                ? 'Confirmar cierre'
-                : 'Confirmar apertura'}
+                ? submitting ? 'Cerrando...' : 'Confirmar cierre'
+                : submitting ? 'Abriendo...' : 'Confirmar apertura'}
             </button>
           </div>
         </form>

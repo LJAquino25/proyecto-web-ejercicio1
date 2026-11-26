@@ -43,7 +43,8 @@ const formatDate = value => {
     ? '—'
     : new Intl.DateTimeFormat('es-SV', {
         dateStyle: 'medium',
-        timeStyle: 'short'
+        timeStyle: 'short',
+        timeZone: 'America/El_Salvador'
       }).format(date)
 }
 

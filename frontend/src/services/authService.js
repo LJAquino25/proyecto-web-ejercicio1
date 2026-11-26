@@ -12,18 +12,27 @@ export async function loginUser({ email, password }) {
       : data?.accountType || data?.customer?.accountType || null
 
   const role = data?.role || data?.employee?.role || null
+  const branchId = data?.branchId || data?.employee?.branchId || null
 
   if (accountType) {
     localStorage.setItem('accountType', accountType)
   }
   if (role) {
     localStorage.setItem('role', role)
+  } else {
+    localStorage.removeItem('role')
+  }
+  if (accountType === 'employee' && branchId) {
+    localStorage.setItem('branchId', String(branchId))
+  } else {
+    localStorage.removeItem('branchId')
   }
 
   return {
     ...data,
     accountType,
     role,
+    branchId,
   }
 }
 
@@ -38,11 +47,12 @@ export function logoutUser() {
   localStorage.removeItem('token')
   localStorage.removeItem('accountType')
   localStorage.removeItem('role')
+  localStorage.removeItem('branchId')
 }
 
 export function getSession() {
-
   const accountType = localStorage.getItem('accountType')
   const role = localStorage.getItem('role')
-  return accountType ? { accountType, role } : null
+  const branchId = localStorage.getItem('branchId')
+  return accountType ? { accountType, role, branchId } : null
 }

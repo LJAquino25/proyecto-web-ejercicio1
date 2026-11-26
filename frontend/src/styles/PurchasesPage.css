@@ -137,3 +137,123 @@
     gap: 8px;
   }
 }
+
+.purchase-detail-empty {
+  padding: 24px;
+  background: #f4f1e9;
+  border: 1px dashed #d5cec2;
+  border-radius: var(--radius-sm);
+  color: #766b5f;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.purchase-payment-progress {
+  margin-top: 24px;
+  padding: 22px;
+  background: var(--color-white);
+  border: 1px solid #d5cec2;
+  border-radius: var(--radius-md);
+}
+
+.purchase-progress-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.purchase-progress-heading strong {
+  font-size: 18px;
+  color: var(--color-text);
+}
+
+.purchase-progress-track {
+  height: 14px;
+  background: #e5e8f1;
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+
+.purchase-progress-fill {
+  height: 100%;
+  background: var(--color-blue);
+  border-radius: var(--radius-pill);
+  transition: width 0.3s ease;
+}
+
+.purchases-tabs {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.purchases-tabs .sales-tab {
+  justify-content: center;
+}
+
+.suppliers-filters {
+  grid-template-columns: 1fr;
+}
+
+.suppliers-filters .inventory-field {
+  max-width: 450px;
+}
+
+.purchases-table.suppliers-table {
+  min-width: 480px;
+}
+
+.suppliers-table th:last-child,
+.suppliers-table td:last-child {
+  width: 120px;
+}
+
+.purchase-status.recorded {
+  background: #e7f0e7;
+  color: #386348;
+}
+
+.purchase-status.void {
+  background: #f5d9d9;
+  color: #9c4545;
+}
+
+.purchase-payment-type {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.purchase-payment-type.cash {
+  background: #dce1ef;
+  color: #404e75;
+}
+
+.purchase-payment-type.credit {
+  background: #f9e9a8;
+  color: #756019;
+}
+
+@media (max-width: 768px) {
+  .purchases-tabs {
+    grid-template-columns: 1fr;
+  }
+
+  .purchases-tabs .sales-tab {
+    justify-content: flex-start;
+    flex-direction: row;
+    padding: 14px 18px;
+  }
+
+  .suppliers-filters .inventory-field {
+    max-width: none;
+  }
+}

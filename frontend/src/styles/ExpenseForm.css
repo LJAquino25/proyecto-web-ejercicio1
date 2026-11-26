@@ -1,0 +1,79 @@
+.expense-form-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 28px;
+  padding: 24px;
+  background: var(--color-yellow);
+  border: 1.5px solid var(--color-text);
+  border-radius: var(--radius-md);
+  box-shadow: 3px 3px 0 var(--color-text);
+}
+
+.expense-form-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.expense-form-total-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.expense-form-total-label span {
+  font-family: var(--font-heading);
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.expense-form-total strong {
+  font-family: var(--font-heading);
+  font-size: 34px;
+  font-weight: 900;
+}
+
+.expense-form-summary p {
+  margin: 0;
+  padding-top: 16px;
+  border-top: 1px solid rgba(48, 37, 28, 0.25);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.expense-form-error {
+  margin: 18px 0 0;
+  padding: 14px 18px;
+  background: var(--color-pink);
+  color: #9d1855;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.admin-form-modal .modal-body {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.admin-form-modal .modal-body::-webkit-scrollbar {
+  display: none;
+}
+
+@media (max-width: 576px) {
+  .expense-form-summary {
+    padding: 18px;
+  }
+
+  .expense-form-total {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .expense-form-total strong {
+    font-size: 28px;
+  }
+}

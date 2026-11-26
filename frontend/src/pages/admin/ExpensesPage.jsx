@@ -12,6 +12,8 @@ import {
 
 import '../../styles/InventoryPage.css'
 import '../../styles/ExpensesPage.css'
+import ExpenseForm from '../../components/admin/ExpenseForm'
+import ExpenseDetail from '../../components/admin/ExpenseDetail'
 
 const BRANCHES = [
   { id: 1, name: 'Centro Histórico' },
@@ -76,6 +78,15 @@ function ExpensesPage() {
   const [branchFilter, setBranchFilter] = useState('ALL')
   const [categoryFilter, setCategoryFilter] = useState('ALL')
   const [searchTerm, setSearchTerm] = useState('')
+
+  const [selectedExpense, setSelectedExpense] =
+  useState(null)
+
+  const [isFormOpen, setIsFormOpen] = useState(false)
+
+const toggleForm = () => {
+  setIsFormOpen(previous => !previous)
+}
 
   const getBranchName = id =>
     BRANCHES.find(branch => branch.id === id)?.name || 'Sin sucursal'
@@ -170,7 +181,7 @@ function ExpensesPage() {
         <button
           type="button"
           className="inventory-primary-button"
-          disabled
+          onClick={toggleForm}
         >
           <Plus size={20} />
           Nuevo gasto
@@ -349,7 +360,7 @@ function ExpensesPage() {
                         className="expense-detail-button"
                         title="Ver detalle"
                         aria-label="Ver detalle"
-                        disabled
+                        onClick={() => setSelectedExpense(expense)}
                       >
                         <Eye size={18} />
                       </button>
@@ -373,7 +384,28 @@ function ExpensesPage() {
           Mostrando {filteredExpenses.length} de{' '}
           {EXPENSES.length} registros
         </div>
+
       </section>
+
+      <ExpenseForm
+  isOpen={isFormOpen}
+  toggle={toggleForm}
+/>
+
+<ExpenseDetail
+  expense={selectedExpense}
+  branchName={
+    selectedExpense
+      ? getBranchName(selectedExpense.branch_id)
+      : ''
+  }
+  categoryName={
+    selectedExpense
+      ? getCategory(selectedExpense.category)?.name
+      : ''
+  }
+  onClose={() => setSelectedExpense(null)}
+/>
     </section>
   )
 }

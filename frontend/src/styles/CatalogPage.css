@@ -72,3 +72,16 @@
     grid-template-columns: 1fr;
   }
 }
+
+.catalog-action.view {
+  background: var(--color-blue);
+}
+
+.catalog-page .inventory-table-wrapper {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.catalog-page .inventory-table-wrapper::-webkit-scrollbar {
+  display: none;
+}

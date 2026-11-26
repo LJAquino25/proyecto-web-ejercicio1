@@ -26,6 +26,7 @@ import {
 import PayrollForm from '../../components/admin/PayrollForm'
 import EmployeeActionModal from '../../components/admin/EmployeeActionModal'
 import PayrollDetailModal from '../../components/admin/PayrollDetailModal'
+import EmployeeForm from '../../components/admin/EmployeeForm'
 
 const EMPLOYEE_PAGE_SIZE = 10
 
@@ -85,6 +86,15 @@ function TeamPage() {
   const [selectedEmployee, setSelectedEmployee] = useState(null)
   const [employeeAction, setEmployeeAction] = useState(null)
   const [selectedPayroll, setSelectedPayroll] = useState(null)
+
+  const [isEmployeeFormOpen, setIsEmployeeFormOpen] = useState(false)
+  const toggleEmployeeForm = () => {
+  setIsEmployeeFormOpen(previous => !previous)
+}
+
+const togglePayrollForm = () => {
+  setIsPayrollFormOpen(previous => !previous)
+}
 
   const loadData = useCallback(async () => {
     if (!canViewPayroll) {
@@ -257,24 +267,24 @@ function TeamPage() {
         </div>
 
         {activeTab === 'employees' ? (
-          <Link
-            to="/staff/team/register"
-            className="inventory-primary-button"
-          >
-            <Plus size={20} />
-            Nuevo empleado
-          </Link>
-        ) : (
-          <button
-            type="button"
-            className="inventory-primary-button"
-            onClick={() => setIsPayrollFormOpen(true)}
-            disabled={loading}
-          >
-            <Plus size={20} />
-            Generar planilla
-          </button>
-        )}
+  <button
+    type="button"
+    className="inventory-primary-button"
+    onClick={toggleEmployeeForm}
+  >
+    <Plus size={20} />
+    Nuevo empleado
+  </button>
+) : (
+  <button
+    type="button"
+    className="inventory-primary-button"
+    onClick={togglePayrollForm}
+  >
+    <Plus size={20} />
+    Generar planilla
+  </button>
+)}
       </div>
 
       <div className="inventory-stats">
@@ -671,6 +681,12 @@ function TeamPage() {
         payroll={selectedPayroll}
         onClose={() => setSelectedPayroll(null)}
       />
+
+      <EmployeeForm
+  isOpen={isEmployeeFormOpen}
+  toggle={toggleEmployeeForm}
+  onRegistered={loadData}
+/>
     </section>
   )
 }

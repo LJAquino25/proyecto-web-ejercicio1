@@ -1,0 +1,140 @@
+.catalog-form-type-section {
+  margin-bottom: 24px;
+}
+
+.catalog-form-label {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.catalog-form-types {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.catalog-form-type {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 20px;
+  background: var(--color-white);
+  color: var(--color-text);
+  border: 1.5px solid #d5cec2;
+  border-radius: var(--radius-md);
+  text-align: left;
+  transition: var(--transition);
+}
+
+.catalog-form-type:hover {
+  background: #fff4cc;
+  border-color: var(--color-text);
+}
+
+.catalog-form-type.selected {
+  background: var(--color-yellow);
+  border-color: var(--color-text);
+  box-shadow: 3px 3px 0 var(--color-text);
+}
+
+.catalog-form-type-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.catalog-form-type strong {
+  font-family: var(--font-heading);
+  font-size: 20px;
+}
+
+.catalog-form-type > span {
+  color: #766b5f;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.catalog-form-supplier {
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid #d5cec2;
+}
+
+.catalog-form-section-heading {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.catalog-form-section-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  background: var(--color-blue);
+  border: 1px solid var(--color-text);
+  border-radius: var(--radius-sm);
+}
+
+.catalog-form-section-heading h3 {
+  margin: 0 0 4px;
+  font-size: 19px;
+}
+
+.catalog-form-section-heading p {
+  margin: 0;
+  color: #766b5f;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.catalog-form-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 24px;
+  padding: 18px;
+  background: #dce1ef;
+  color: #404e75;
+  border: 1px solid var(--color-blue);
+  border-radius: var(--radius-sm);
+}
+
+.catalog-form-notice > svg {
+  flex-shrink: 0;
+}
+
+.catalog-form-notice strong {
+  font-size: 14px;
+}
+
+.catalog-form-notice p {
+  margin: 5px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.admin-form-modal .modal-body {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.admin-form-modal .modal-body::-webkit-scrollbar {
+  display: none;
+}
+
+@media (max-width: 576px) {
+  .catalog-form-types {
+    grid-template-columns: 1fr;
+  }
+
+  .catalog-form-type {
+    padding: 16px;
+  }
+}

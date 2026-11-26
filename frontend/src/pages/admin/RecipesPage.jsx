@@ -1,5 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState
+} from 'react'
+
 import { Link } from 'react-router-dom'
+
 import {
   ArrowLeft,
   Plus,
@@ -7,50 +14,75 @@ import {
   Search,
   ChevronDown,
   ChevronUp,
-  CookingPot,
+  Pencil,
+  CookingPot
 } from 'lucide-react'
 
 import '../../styles/InventoryPage.css'
 import '../../styles/RecipesPage.css'
+
 import RecipeForm from '../../components/admin/RecipeForm'
 import RecipePreparationForm from '../../components/admin/RecipePreparationForm'
-import { getBranches, getCatalog } from '../../services/catalogService'
+
+import {
+  getBranches,
+  getCatalog
+} from '../../services/catalogService'
+
 import {
   createInventoryRecipe,
   getInventoryRecipes,
   getInventorySupplies,
-  prepareInventoryRecipe,
+  prepareInventoryRecipe
 } from '../../services/inventoryService'
 
 const RECIPE_COLORS = ['yellow', 'blue', 'pink']
 
+const UNIT_LABELS = {
+  G: 'Gramos',
+  ML: 'Mililitros',
+  KG: 'Kilogramos',
+  L: 'Litros',
+  UNIT: 'Unidades'
+}
+
 function RecipesPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [expandedRecipes, setExpandedRecipes] = useState([])
+
   const [recipes, setRecipes] = useState([])
   const [supplies, setSupplies] = useState([])
   const [catalog, setCatalog] = useState([])
   const [branches, setBranches] = useState([])
+
   const [branchesError, setBranchesError] = useState('')
-  const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
+
+  const [isLoading, setIsLoading] = useState(true)
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [preparationRecipe, setPreparationRecipe] = useState(null)
 
   const loadData = useCallback(async () => {
     setIsLoading(true)
     setLoadError('')
+
     try {
-      const [recipeData, supplyData, catalogData] = await Promise.all([
-        getInventoryRecipes(),
-        getInventorySupplies(),
-        getCatalog(),
-      ])
+      const [recipeData, supplyData, catalogData] =
+        await Promise.all([
+          getInventoryRecipes(),
+          getInventorySupplies(),
+          getCatalog()
+        ])
+
       setRecipes(recipeData)
       setSupplies(supplyData)
       setCatalog(catalogData)
     } catch (error) {
-      setLoadError(error.message || 'No se pudieron cargar las recetas.')
+      setLoadError(
+        error.message ||
+        'No se pudieron cargar las recetas.'
+      )
+
       setRecipes([])
       setSupplies([])
       setCatalog([])
@@ -65,22 +97,31 @@ function RecipesPage() {
 
   useEffect(() => {
     let active = true
+
     getBranches()
       .then(data => {
-        if (active) setBranches(data)
+        if (active) {
+          setBranches(data)
+        }
       })
       .catch(error => {
         if (active) {
-          setBranchesError(error.message || 'No se pudieron cargar las sucursales.')
+          setBranchesError(
+            error.message ||
+            'No se pudieron cargar las sucursales.'
+          )
         }
       })
+
     return () => {
       active = false
     }
   }, [])
 
   const preparedProductIds = useMemo(
-    () => new Set(recipes.map(recipe => Number(recipe.product_id))),
+    () => new Set(
+      recipes.map(recipe => Number(recipe.product_id))
+    ),
     [recipes]
   )
 
@@ -94,6 +135,21 @@ function RecipesPage() {
     [catalog, preparedProductIds]
   )
 
+  const productNames = useMemo(
+    () =>
+      new Map(
+        catalog.map(product => [
+          Number(product.id),
+          product.name
+        ])
+      ),
+    [catalog]
+  )
+
+  const toggleForm = () => {
+    setIsFormOpen(previous => !previous)
+  }
+
   const toggleRecipe = id => {
     setExpandedRecipes(previous =>
       previous.includes(id)
@@ -102,23 +158,32 @@ function RecipesPage() {
     )
   }
 
-  const filteredRecipes = useMemo(
-    () =>
-      recipes.filter(recipe =>
-        recipe.name.toLowerCase().includes(searchTerm.toLowerCase())
-      ),
-    [recipes, searchTerm]
-  )
+  const filteredRecipes = useMemo(() => {
+    const search = searchTerm.trim().toLowerCase()
+
+    return recipes.filter(recipe => {
+      const productName =
+        productNames.get(Number(recipe.product_id)) ||
+        recipe.product_name ||
+        ''
+
+      return (
+        recipe.name.toLowerCase().includes(search) ||
+        productName.toLowerCase().includes(search)
+      )
+    })
+  }, [recipes, searchTerm, productNames])
 
   const handleCreateRecipe = async form => {
     await createInventoryRecipe(form)
+
     setIsFormOpen(false)
+
     await loadData()
   }
 
-  const handlePrepareRecipe = form => prepareInventoryRecipe(form)
-
-  const toggleForm = () => setIsFormOpen(previous => !previous)
+  const handlePrepareRecipe = form =>
+    prepareInventoryRecipe(form)
 
   return (
     <section className="recipes-page">
@@ -129,16 +194,26 @@ function RecipesPage() {
 
       <div className="inventory-heading">
         <div>
-          <span className="admin-eyebrow">INVENTARIO</span>
+          <span className="admin-eyebrow">
+            INVENTARIO
+          </span>
+
           <h1>Recetas</h1>
-          <p>Administrá los ingredientes de cada preparación.</p>
+
+          <p>
+            Administrá los ingredientes de cada preparación.
+          </p>
         </div>
 
         <button
           type="button"
           className="inventory-primary-button"
           onClick={toggleForm}
-          disabled={isLoading || preparedProducts.length === 0 || supplies.length === 0}
+          disabled={
+            isLoading ||
+            preparedProducts.length === 0 ||
+            supplies.length === 0
+          }
           title={
             !isLoading && preparedProducts.length === 0
               ? 'No hay productos preparados disponibles para asignar una receta'
@@ -155,62 +230,120 @@ function RecipesPage() {
           <span className="recipes-summary-icon">
             <CookingPot size={24} />
           </span>
+
           <div>
-            <strong>{isLoading ? '—' : recipes.length}</strong>
+            <strong>
+              {isLoading || loadError
+                ? '—'
+                : recipes.length}
+            </strong>
+
             <span>Recetas registradas</span>
           </div>
         </div>
 
         <label className="inventory-field recipes-search">
           <span>Buscar receta</span>
+
           <div className="inventory-search">
             <Search size={19} />
+
             <input
               type="search"
-              placeholder="Buscar por nombre..."
+              placeholder="Buscar receta o producto..."
               value={searchTerm}
-              onChange={event => setSearchTerm(event.target.value)}
+              onChange={event =>
+                setSearchTerm(event.target.value)
+              }
             />
           </div>
         </label>
       </div>
 
-      {loadError && <p className="inventory-empty" role="alert">{loadError}</p>}
-      {branchesError && <p className="inventory-empty" role="alert">{branchesError}</p>}
+      {loadError && (
+        <p className="inventory-empty" role="alert">
+          {loadError}
+        </p>
+      )}
+
+      {branchesError && (
+        <p className="inventory-empty" role="alert">
+          {branchesError}
+        </p>
+      )}
 
       <div className="recipes-list">
         {filteredRecipes.map((recipe, index) => {
-          const isExpanded = expandedRecipes.includes(recipe.id)
-          const ingredients = Array.isArray(recipe.ingredients)
-            ? recipe.ingredients
-            : []
+          const isExpanded =
+            expandedRecipes.includes(recipe.id)
+
+          const ingredients =
+            Array.isArray(recipe.ingredients)
+              ? recipe.ingredients
+              : []
+
+          const productName =
+            productNames.get(Number(recipe.product_id)) ||
+            recipe.product_name
+
+          const color =
+            RECIPE_COLORS[index % RECIPE_COLORS.length]
 
           return (
-            <article className="recipe-card" key={recipe.id}>
+            <article
+              className="recipe-card"
+              key={recipe.id}
+            >
               <button
                 type="button"
                 className="recipe-card-header"
                 onClick={() => toggleRecipe(recipe.id)}
                 aria-expanded={isExpanded}
               >
-                <span className={`recipe-icon ${RECIPE_COLORS[index % RECIPE_COLORS.length]}`}>
+                <span className={`recipe-icon ${color}`}>
                   <BookOpen size={26} />
                 </span>
+
                 <span className="recipe-card-title">
                   <strong>{recipe.name}</strong>
-                  <small>{ingredients.length} ingredientes</small>
+
+                  {productName && (
+                    <small>
+                      Producto: {productName}
+                    </small>
+                  )}
+
+                  <span className="recipe-ingredient-count">
+                    {ingredients.length}{' '}
+                    {ingredients.length === 1
+                      ? 'ingrediente'
+                      : 'ingredientes'}
+                  </span>
                 </span>
+
                 <span className="recipe-expand-icon">
-                  {isExpanded ? <ChevronUp size={22} /> : <ChevronDown size={22} />}
+                  {isExpanded ? (
+                    <ChevronUp size={22} />
+                  ) : (
+                    <ChevronDown size={22} />
+                  )}
                 </span>
               </button>
 
               {isExpanded && (
                 <div className="recipe-card-content">
+                  {recipe.description && (
+                    <div className="recipe-description">
+                      <h3>Descripción de la receta</h3>
+                      <p>{recipe.description}</p>
+                    </div>
+                  )}
+
                   <div className="recipe-content-heading">
                     <h3>Ingredientes</h3>
                     <span>Cantidad por preparación</span>
                   </div>
+
                   <div className="inventory-table-wrapper">
                     <table className="inventory-table recipe-table">
                       <thead>
@@ -220,24 +353,71 @@ function RecipesPage() {
                           <th>Unidad de medida</th>
                         </tr>
                       </thead>
+
                       <tbody>
                         {ingredients.map(ingredient => (
                           <tr key={ingredient.supply_id}>
-                            <td><strong>{ingredient.name}</strong></td>
-                            <td>{Number(ingredient.quantity_used).toLocaleString('es-SV')}</td>
-                            <td>{ingredient.unit}</td>
+                            <td>
+                              <strong>
+                                {ingredient.name}
+                              </strong>
+                            </td>
+
+                            <td>
+                              {Number(
+                                ingredient.quantity_used
+                              ).toLocaleString('es-SV', {
+                                maximumFractionDigits: 3
+                              })}
+                            </td>
+
+                            <td>
+                              {UNIT_LABELS[
+                                String(
+                                  ingredient.unit
+                                ).toUpperCase()
+                              ] || ingredient.unit}
+                            </td>
                           </tr>
                         ))}
+
+                        {ingredients.length === 0 && (
+                          <tr>
+                            <td
+                              colSpan={3}
+                              className="inventory-empty"
+                            >
+                              No hay ingredientes registrados.
+                            </td>
+                          </tr>
+                        )}
                       </tbody>
                     </table>
                   </div>
+
                   <div className="recipe-card-footer">
                     <button
                       type="button"
                       className="recipe-edit-button"
-                      onClick={() => setPreparationRecipe(recipe)}
+                      disabled
+                      title="Pendiente de conexión"
+                    >
+                      <Pencil size={16} />
+                      Editar receta
+                    </button>
+
+                    <button
+                      type="button"
+                      className="recipe-edit-button"
+                      onClick={() =>
+                        setPreparationRecipe(recipe)
+                      }
                       disabled={!branches.length}
-                      title={!branches.length ? 'No hay sucursales disponibles' : undefined}
+                      title={
+                        !branches.length
+                          ? 'No hay sucursales disponibles'
+                          : undefined
+                      }
                     >
                       <CookingPot size={16} />
                       Preparar
@@ -255,17 +435,25 @@ function RecipesPage() {
             <h3>Cargando recetas...</h3>
           </div>
         )}
-        {!isLoading && !loadError && filteredRecipes.length === 0 && (
-          <div className="recipes-empty">
-            <BookOpen size={36} />
-            <h3>No se encontraron recetas</h3>
-            <p>Intentá buscar con otro nombre.</p>
-          </div>
-        )}
+
+        {!isLoading &&
+          !loadError &&
+          filteredRecipes.length === 0 && (
+            <div className="recipes-empty">
+              <BookOpen size={36} />
+
+              <h3>No se encontraron recetas</h3>
+
+              <p>
+                Intentá buscar con otro nombre.
+              </p>
+            </div>
+          )}
       </div>
 
       <div className="recipes-footer">
-        Mostrando {filteredRecipes.length} de {recipes.length} recetas
+        Mostrando {filteredRecipes.length} de{' '}
+        {recipes.length} recetas
       </div>
 
       <RecipeForm
@@ -275,13 +463,18 @@ function RecipesPage() {
         preparedProducts={preparedProducts}
         supplies={supplies}
       />
+
       <RecipePreparationForm
         isOpen={Boolean(preparationRecipe)}
         toggle={() => setPreparationRecipe(null)}
         onSubmit={handlePrepareRecipe}
         recipe={preparationRecipe}
         branches={branches}
-        initialBranchId={branches[0] ? String(branches[0].id) : ''}
+        initialBranchId={
+          branches[0]
+            ? String(branches[0].id)
+            : ''
+        }
       />
     </section>
   )

@@ -5,7 +5,6 @@ import LoginPage from './pages/auth/LoginPage'
 import RegisterPage from './pages/auth/RegisterPage'
 import StaffLayout from './layouts/StaffLayout'
 import AdminDashboard from './pages/admin/AdminDashboard'
-import EmployeeRegistrationPage from './pages/admin/EmployeeRegistrationPage'
 import InventoryPage from './pages/admin/InventoryPage'
 import CatalogPage from './pages/admin/CatalogPage'
 import RecipesPage from './pages/admin/RecipesPage'
@@ -28,10 +27,6 @@ function App() {
         <Route index element={<AdminDashboard />} />
 
         <Route path="team" element={<TeamPage />} />
-        <Route
-          path="team/register"
-          element={<EmployeeRegistrationPage />}
-        />
 
         <Route path="inventory" element={<InventoryPage />} />
         <Route path="catalog" element={<CatalogPage />} />

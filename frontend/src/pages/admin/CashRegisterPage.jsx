@@ -24,6 +24,7 @@ import { getSession } from '../../services/authService'
 import '../../styles/InventoryPage.css'
 import '../../styles/CashRegisterPage.css'
 import CashRegisterForm from '../../components/admin/CashRegisterForm'
+import CashRegisterDetail from '../../components/admin/CashRegisterDetail'
 
 const formatDate = value => {
   if (!value) return '—'
@@ -379,46 +380,25 @@ function CashRegisterPage() {
           </table>
         </div>
 
-        {selectedRegister && (
-          <section className="cash-detail-panel" aria-live="polite">
-            <div className="cash-detail-heading">
-              <h3>Detalle del turno #{selectedRegister.id}</h3>
-              <button
-                type="button"
-                className="cash-detail-close"
-                onClick={() => setSelectedRegister(null)}
-                aria-label="Cerrar detalle"
-              >
-                <X size={18} />
-              </button>
-            </div>
-            <div className="cash-detail-values">
-              <span>Efectivo vendido: <strong>${formatMoney(selectedRegister.salesByMethod.cash)}</strong></span>
-              <span>Tarjeta: <strong>${formatMoney(selectedRegister.salesByMethod.card)}</strong></span>
-              <span>Pagos digitales / transferencia: <strong>${formatMoney(selectedRegister.salesByMethod.bitcoinChivo)}</strong></span>
-              <span>Efectivo esperado: <strong>${formatMoney(selectedRegister.expectedCash)}</strong></span>
-              <span>Efectivo contado: <strong>{selectedRegister.countedCash === null ? '—' : `$${formatMoney(selectedRegister.countedCash)}`}</strong></span>
-              {selectedRegister.difference !== null && (
-                <span>Diferencia: <strong>${formatMoney(selectedRegister.difference)}</strong></span>
-              )}
-              {selectedRegister.notes && <span>Observaciones: {selectedRegister.notes}</span>}
-            </div>
-          </section>
-        )}
-
         <div className="inventory-panel-footer">
           Mostrando {filteredRegisters.length} registros de caja
         </div>
       </section>
 
       <CashRegisterForm
-        isOpen={isFormOpen}
-        toggle={() => setIsFormOpen(false)}
-        mode={formMode}
-        branchName={selectedBranch?.name}
-        currentRegister={currentRegister}
-        onSubmit={handleCashSubmit}
-      />
+  isOpen={isFormOpen}
+  toggle={() => setIsFormOpen(false)}
+  mode={formMode}
+  branchName={selectedBranch?.name}
+  currentRegister={currentRegister}
+  onSubmit={handleCashSubmit}
+/>
+
+<CashRegisterDetail
+  register={selectedRegister}
+  branchName={selectedBranch?.name}
+  onClose={() => setSelectedRegister(null)}
+/>
     </section>
   )
 }

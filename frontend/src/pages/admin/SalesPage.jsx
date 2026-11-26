@@ -22,6 +22,7 @@ import '../../styles/InventoryPage.css'
 import '../../styles/SalesPage.css'
 import OrderForm from '../../components/admin/OrderForm'
 import InvoiceForm from '../../components/admin/InvoiceForm'
+import SalesDetail from '../../components/admin/SalesDetail'
 
 const STATUS_LABELS = {
   CART: 'Pendiente',
@@ -394,47 +395,6 @@ function SalesPage() {
           )}
         </div>
 
-        {selectedRecord && (
-          <section className="sales-detail-panel" aria-live="polite">
-            <div className="sales-detail-heading">
-              <h3>
-                {selectedRecord.type === 'order'
-                  ? `Detalle del pedido ${formatId(selectedRecord.data.id)}`
-                  : `Detalle de la factura ${formatId(selectedRecord.data.documentNumber)}`}
-              </h3>
-              <button
-                type="button"
-                className="sales-detail-close"
-                onClick={() => setSelectedRecord(null)}
-                aria-label="Cerrar detalle"
-              >
-                <X size={18} />
-              </button>
-            </div>
-            {selectedRecord.type === 'order' ? (
-              <ul>
-                {(selectedRecord.data.items || []).map((item, index) => (
-                  <li key={`${item.productId}-${index}`}>
-                    {item.quantity} × {item.productName}
-                    <strong>${(Number(item.unitPrice) * Number(item.quantity)).toFixed(2)}</strong>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div className="sales-detail-fiscal">
-                <span>Pedido asociado: {formatId(selectedRecord.data.orderId)}</span>
-                {selectedRecord.data.taxCreditData && (
-                  <>
-                    <span>Razón social: {selectedRecord.data.taxCreditData.institutionName || '—'}</span>
-                    <span>NIT: {selectedRecord.data.taxCreditData.nit || '—'}</span>
-                    <span>NRC: {selectedRecord.data.taxCreditData.nrc || '—'}</span>
-                  </>
-                )}
-              </div>
-            )}
-          </section>
-        )}
-
         <div className="inventory-panel-footer">
           {activeTab === 'orders'
             ? `Mostrando ${filteredOrders.length} de ${orders.length} pedidos`
@@ -442,16 +402,23 @@ function SalesPage() {
         </div>
       </section>
 
-      <OrderForm
+           <OrderForm
         isOpen={isOrderFormOpen}
         toggle={() => setIsOrderFormOpen(false)}
         onSubmit={handleCreateOrder}
       />
+
       <InvoiceForm
         isOpen={isInvoiceFormOpen}
         toggle={() => setIsInvoiceFormOpen(false)}
         onSubmit={handleCreateInvoice}
         orders={availableOrders}
+      />
+
+      <SalesDetail
+        selection={selectedRecord}
+        orders={orders}
+        onClose={() => setSelectedRecord(null)}
       />
     </section>
   )

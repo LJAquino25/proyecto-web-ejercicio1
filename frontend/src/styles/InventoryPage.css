@@ -292,3 +292,26 @@
     padding: 20px;
   }
 }
+
+.inventory-tabs {
+  flex-wrap: wrap;
+}
+
+.inventory-page .inventory-table-wrapper {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.inventory-page .inventory-table-wrapper::-webkit-scrollbar {
+  display: none;
+}
+
+@media (max-width: 576px) {
+  .inventory-tabs {
+    flex-direction: column;
+  }
+
+  .inventory-tabs .sales-tab {
+    width: 100%;
+  }
+}

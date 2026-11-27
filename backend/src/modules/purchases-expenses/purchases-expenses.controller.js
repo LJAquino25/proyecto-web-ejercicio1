@@ -42,7 +42,7 @@ const postAddPurchaseOrder = async (req, res) => {
     const purchaseOrder = await purchasesExpensesService.addPurchaseOrder({
       supplierId: req.body.supplierId ?? req.body.supplier_id,
       branchId: req.body.branchId ?? req.body.branch_id ?? 1,
-      employeeId: req.body.employeeId ?? req.body.employee_id ?? 1,
+      employeeId: req.user?.id ?? req.user?.userId ?? req.body.employeeId ?? req.body.employee_id,
       items: req.body.items,
       expectedDate: req.body.expectedDate ?? req.body.expected_date ?? null
     });
@@ -84,7 +84,7 @@ const postAddPurchaseInvoice = async (req, res) => {
       purchaseOrderId: req.body.purchaseOrderId ?? req.body.purchase_order_id ?? null,
       supplierId: req.body.supplierId ?? req.body.supplier_id,
       branchId: req.body.branchId ?? req.body.branch_id ?? 1,
-      employeeId: req.body.employeeId ?? req.body.employee_id ?? 1,
+      employeeId: req.user?.id ?? req.user?.userId ?? req.body.employeeId ?? req.body.employee_id,
       documentNum: req.body.documentNum ?? req.body.document_num,
       paymentTerms: req.body.paymentTerms ?? req.body.payment_terms ?? "CASH",
       issueDate: req.body.issueDate ?? req.body.issue_date ?? null,
@@ -109,7 +109,7 @@ const postAddExpense = async (req, res) => {
   try {
     const expense = await purchasesExpensesService.addExpense({
       branchId: req.body.branchId ?? req.body.branch_id ?? 1,
-      employeeId: req.body.employeeId ?? req.body.employee_id ?? 1,
+      employeeId: req.user?.id ?? req.user?.userId ?? req.body.employeeId ?? req.body.employee_id,
       category: req.body.category,
       description: req.body.description,
       amount: req.body.amount,

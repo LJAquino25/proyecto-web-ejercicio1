@@ -3,11 +3,11 @@ const service = require("./payroll.service.js")
 
 const createPayroll = async (req, res) => {
     try {
-        const { employee_id, period, fortnight } = req.body;
-        const insertPayroll = await service.createPayroll({ employee_id, period, fortnight})
+        const { branch_id, period, fortnight } = req.body;
+        const payrolls = await service.createPayroll({ branch_id, period, fortnight})
         return res.status(201).json({
             message: "Payroll created successfully",
-            employee: insertPayroll
+            payrolls
         })
     } catch (error) {
         const status = error.statusCode || 400;

@@ -338,6 +338,18 @@ const getGeneralExpenses = async ({ category = null }, db = pool) => {
   return result.rows;
 };
 
+const updateSupplier = async ({ id, name, phone }) => {
+  const query = `
+    UPDATE supplier
+    SET name = COALESCE($1, name),
+        phone = COALESCE($2, phone)
+    WHERE id = $3
+    RETURNING id, name, phone;
+  `;
+  const { rows } = await pool.query(query, [name ?? null, phone ?? null, id]);
+  return rows[0] || null;
+};
+
 module.exports = {
   findSupplierByName,
   findSupplierById,
@@ -355,5 +367,6 @@ module.exports = {
   getPurchaseOrders,
   createAccountPayable,
   createGeneralExpense,
-  getGeneralExpenses
+  getGeneralExpenses,
+  updateSupplier
 };

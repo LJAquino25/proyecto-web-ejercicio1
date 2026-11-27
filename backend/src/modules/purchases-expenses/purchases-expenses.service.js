@@ -437,6 +437,34 @@ const listExpenses = async (category = null) => {
   };
 };
 
+const editSupplier = async (id, { name, phone = null }) => {
+  const parsedId = Number(id);
+  const cleanName = String(name || "").trim();
+
+  if (!Number.isInteger(parsedId) || parsedId <= 0) {
+    throw createHttpError(400, "Valid supplier ID is required");
+  }
+  if (!cleanName) {
+    throw createHttpError(400, "Supplier name is required");
+  }
+
+  const existingSupplier = await purchasesExpensesRepo.findSupplierById(parsedId);
+  if (!existingSupplier) {
+    throw createHttpError(404, `Supplier with ID ${parsedId} not found`);
+  }
+
+  const duplicateName = await purchasesExpensesRepo.findSupplierByName(cleanName);
+  if (duplicateName && duplicateName.id !== parsedId) {
+    throw createHttpError(409, `Supplier '${cleanName}' already exists`);
+  }
+
+  return await purchasesExpensesRepo.updateSupplier({
+    id: parsedId,
+    name: cleanName,
+    phone: phone ? String(phone).trim() : null
+  });
+};
+
 module.exports = {
   addSupplier,
   listSuppliers,
@@ -444,5 +472,6 @@ module.exports = {
   listPurchaseOrders,
   addPurchaseInvoice,
   addExpense,
-  listExpenses
+  listExpenses,
+  editSupplier
 };

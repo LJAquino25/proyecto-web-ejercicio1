@@ -4,6 +4,7 @@ const router = express.Router();
 const {
   postAddSupplier,
   getSuppliers,
+  updateSupplier,
   postAddPurchaseOrder,
   getPurchaseOrders,
   postAddPurchaseInvoice,
@@ -14,6 +15,7 @@ const {
 // Suppliers
 router.post("/supplier", postAddSupplier);
 router.get("/supplier", getSuppliers);
+router.put("/supplier/:id", updateSupplier);
 
 // Purchase Orders
 router.post("/purchase-orders", postAddPurchaseOrder);

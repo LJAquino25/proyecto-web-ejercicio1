@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Modal, ModalBody } from 'reactstrap'
 import { CookingPot, X, Check } from 'lucide-react'
 import '../../styles/AdminForm.css'
+import { getBranchInventory } from '../../services/inventoryService'
 
 function RecipePreparationForm({
   isOpen,
@@ -10,12 +11,16 @@ function RecipePreparationForm({
   recipe,
   branches,
   initialBranchId,
+  allowBranchSelection = false,
 }) {
   const [branchId, setBranchId] = useState('')
   const [quantity, setQuantity] = useState('1')
   const [error, setError] = useState('')
   const [result, setResult] = useState(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [branchInventory, setBranchInventory] = useState([])
+  const [isLoadingStock, setIsLoadingStock] = useState(false)
+  const [stockError, setStockError] = useState('')
 
   useEffect(() => {
     if (isOpen) {
@@ -25,6 +30,53 @@ function RecipePreparationForm({
       setResult(null)
     }
   }, [isOpen, initialBranchId, branches])
+
+  useEffect(() => {
+    if (!isOpen || !branchId) {
+      setBranchInventory([])
+      setStockError('')
+      setIsLoadingStock(false)
+      return undefined
+    }
+
+    let active = true
+    setBranchInventory([])
+    setIsLoadingStock(true)
+    setStockError('')
+
+    getBranchInventory(branchId)
+      .then(inventory => {
+        if (active) setBranchInventory(inventory)
+      })
+      .catch(loadError => {
+        if (active) {
+          setBranchInventory([])
+          setStockError(loadError.message || 'No se pudo consultar el stock de la sucursal.')
+        }
+      })
+      .finally(() => {
+        if (active) setIsLoadingStock(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [isOpen, branchId])
+
+  const ingredientStock = useMemo(() => {
+    const stockBySupply = new Map(
+      branchInventory.map(item => [Number(item.id), Number(item.quantity)])
+    )
+    return (recipe?.ingredients || []).map(ingredient => ({
+      ...ingredient,
+      available: stockBySupply.get(Number(ingredient.supply_id)) || 0,
+      required: Number(ingredient.quantity_used) * Number(quantity),
+    }))
+  }, [branchInventory, quantity, recipe])
+
+  const hasInsufficientStock = ingredientStock.some(
+    ingredient => ingredient.available < ingredient.required
+  )
 
   const handleSubmit = async event => {
     event.preventDefault()
@@ -116,6 +168,7 @@ function RecipePreparationForm({
                 <select
                   value={branchId}
                   onChange={event => setBranchId(event.target.value)}
+                  disabled={!allowBranchSelection}
                   required
                 >
                   <option value="">Seleccionar sucursal</option>
@@ -140,6 +193,25 @@ function RecipePreparationForm({
               </label>
             </div>
 
+            <div className="admin-form-stock-alerts" aria-live="polite">
+              <strong>Stock de insumos en esta sucursal</strong>
+              {isLoadingStock ? (
+                <p>Consultando existencias...</p>
+              ) : stockError ? (
+                <p className="admin-form-error" role="alert">{stockError}</p>
+              ) : (
+                <ul>
+                  {ingredientStock.map(ingredient => (
+                    <li key={ingredient.supply_id}>
+                      {ingredient.name}: {ingredient.available} {ingredient.unit}
+                      {' '}(necesita {ingredient.required})
+                      {ingredient.available < ingredient.required ? ' — Insuficiente' : ''}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
             {branches.length === 0 && (
               <p className="admin-form-error" role="alert">
                 No hay sucursales disponibles para preparar este producto.
@@ -159,7 +231,13 @@ function RecipePreparationForm({
               <button
                 type="submit"
                 className="admin-form-submit"
-                disabled={isSubmitting || !branches.length}
+                disabled={
+                  isSubmitting ||
+                  !branches.length ||
+                  isLoadingStock ||
+                  Boolean(stockError) ||
+                  hasInsufficientStock
+                }
               >
                 <Check size={18} />
                 {isSubmitting ? 'Descontando...' : 'Confirmar preparación'}

@@ -15,14 +15,21 @@ import {
   CheckCircle2,
   TriangleAlert,
   Search,
-  Truck
+  Truck,
+  Plus
 } from 'lucide-react'
 
 import '../../styles/InventoryPage.css'
 import '../../styles/SalesPage.css'
 
 import { getBranches } from '../../services/catalogService'
-import { getBranchInventory, getBranchPackagedInventory } from '../../services/inventoryService'
+import { getSession } from '../../services/authService'
+import {
+  addInventorySupply,
+  getBranchInventory,
+  getBranchPackagedInventory
+} from '../../services/inventoryService'
+import InventorySupplyForm from '../../components/admin/InventorySupplyForm'
 
 const UNIT_LABELS = {
   G: 'Gramos',
@@ -38,9 +45,14 @@ const formatQuantity = value =>
   }).format(Number(value))
 
 function InventoryPage() {
+  const session = getSession()
+  const canChooseBranch = String(session?.role || '').toUpperCase() === 'GERENTE'
+  const assignedBranchId = session?.branchId ? String(session.branchId) : ''
   const [activeTab, setActiveTab] = useState('supplies')
   const [searchTerm, setSearchTerm] = useState('')
-  const [branchId, setBranchId] = useState('')
+  const [branchId, setBranchId] = useState(
+    canChooseBranch ? '' : assignedBranchId
+  )
   const [stockFilter, setStockFilter] = useState('ALL')
 
   const [branches, setBranches] = useState([])
@@ -49,6 +61,7 @@ function InventoryPage() {
   const [branchError, setBranchError] = useState('')
   const [loadError, setLoadError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [isSupplyFormOpen, setIsSupplyFormOpen] = useState(false)
 
   const inventoryRequestId = useRef(0)
 
@@ -90,12 +103,23 @@ function InventoryPage() {
       .then(data => {
         if (!active) return
 
-        setBranches(data)
+        const availableBranches = canChooseBranch
+          ? data
+          : data.filter(branch => String(branch.id) === assignedBranchId)
+        setBranches(availableBranches)
 
-        if (data.length) {
-          setBranchId(String(data[0].id))
+        if (availableBranches.length) {
+          setBranchId(
+            canChooseBranch
+              ? String(availableBranches[0].id)
+              : assignedBranchId
+          )
         } else {
-          setBranchError('No hay sucursales registradas.')
+          setBranchError(
+            canChooseBranch
+              ? 'No hay sucursales registradas.'
+              : 'No se encontró la sucursal asignada a tu cuenta.'
+          )
         }
       })
       .catch(error => {
@@ -110,7 +134,7 @@ function InventoryPage() {
     return () => {
       active = false
     }
-  }, [])
+  }, [assignedBranchId, canChooseBranch])
 
   useEffect(() => {
     if (branchId) {
@@ -131,6 +155,15 @@ function InventoryPage() {
     setActiveTab(tab)
     setSearchTerm('')
     setStockFilter('ALL')
+  }
+
+  const handleAddSupply = async form => {
+    await addInventorySupply({
+      ...form,
+      branch_id: Number(branchId)
+    })
+    setIsSupplyFormOpen(false)
+    await loadInventory(branchId, true)
   }
 
   const lowStock = products.filter(
@@ -200,13 +233,26 @@ function InventoryPage() {
           </p>
         </div>
 
-        <Link
-          to="/staff/purchases"
-          className="inventory-primary-button inventory-purchases-link"
-        >
-          <Truck size={20} />
-          Ir a compras
-        </Link>
+        <div className="inventory-heading-actions">
+          {canChooseBranch && isSupplies && (
+            <button
+              type="button"
+              className="inventory-primary-button"
+              onClick={() => setIsSupplyFormOpen(true)}
+              disabled={!branchId || Boolean(branchError)}
+            >
+              <Plus size={20} />
+              Agregar insumo
+            </button>
+          )}
+          <Link
+            to="/staff/purchases"
+            className="inventory-primary-button inventory-purchases-link"
+          >
+            <Truck size={20} />
+            Ir a compras
+          </Link>
+        </div>
       </div>
 
       {branchError && (
@@ -286,7 +332,7 @@ function InventoryPage() {
               onChange={event =>
                 setBranchId(event.target.value)
               }
-              disabled={!branches.length}
+              disabled={!canChooseBranch || !branches.length}
             >
               <option value="">
                 Seleccionar sucursal
@@ -437,6 +483,13 @@ function InventoryPage() {
               : `Mostrando ${filteredProducts.length} de ${products.length} ${isSupplies ? 'insumos' : 'productos'}`}
         </div>
       </section>
+
+      <InventorySupplyForm
+        isOpen={isSupplyFormOpen}
+        toggle={() => setIsSupplyFormOpen(false)}
+        branchName={branches.find(branch => String(branch.id) === branchId)?.name}
+        onSubmit={handleAddSupply}
+      />
     </section>
   )
 }

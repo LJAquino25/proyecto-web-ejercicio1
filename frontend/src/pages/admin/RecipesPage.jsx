@@ -28,11 +28,13 @@ import {
   getBranches,
   getCatalog
 } from '../../services/catalogService'
+import { getSession } from '../../services/authService'
 
 import {
+  addCatalogProduct,
   createInventoryRecipe,
   getInventoryRecipes,
-  getInventorySupplies,
+  getAvailableInventorySupplies,
   prepareInventoryRecipe
 } from '../../services/inventoryService'
 
@@ -47,6 +49,11 @@ const UNIT_LABELS = {
 }
 
 function RecipesPage() {
+  const session = getSession()
+  const role = String(session?.role || '').toUpperCase()
+  const canChooseBranch = role === 'GERENTE'
+  const canCreateRecipe = canChooseBranch || role === 'COCINERO'
+  const assignedBranchId = session?.branchId ? String(session.branchId) : ''
   const [searchTerm, setSearchTerm] = useState('')
   const [expandedRecipes, setExpandedRecipes] = useState([])
 
@@ -70,7 +77,7 @@ function RecipesPage() {
       const [recipeData, supplyData, catalogData] =
         await Promise.all([
           getInventoryRecipes(),
-          getInventorySupplies(),
+          getAvailableInventorySupplies(),
           getCatalog()
         ])
 
@@ -101,7 +108,17 @@ function RecipesPage() {
     getBranches()
       .then(data => {
         if (active) {
-          setBranches(data)
+          const availableBranches = canChooseBranch
+            ? data
+            : data.filter(branch => String(branch.id) === assignedBranchId)
+          setBranches(availableBranches)
+          if (!availableBranches.length) {
+            setBranchesError(
+              canChooseBranch
+                ? 'No hay sucursales registradas.'
+                : 'No se encontró la sucursal asignada a tu cuenta.'
+            )
+          }
         }
       })
       .catch(error => {
@@ -116,7 +133,7 @@ function RecipesPage() {
     return () => {
       active = false
     }
-  }, [])
+  }, [assignedBranchId, canChooseBranch])
 
   const preparedProductIds = useMemo(
     () => new Set(
@@ -175,7 +192,16 @@ function RecipesPage() {
   }, [recipes, searchTerm, productNames])
 
   const handleCreateRecipe = async form => {
-    await createInventoryRecipe(form)
+    if (form.newProductName) {
+      await addCatalogProduct({
+        name: form.newProductName,
+        price: form.price,
+        productType: 'PREPARED',
+        ingredients: form.ingredients
+      })
+    } else {
+      await createInventoryRecipe(form)
+    }
 
     setIsFormOpen(false)
 
@@ -205,24 +231,25 @@ function RecipesPage() {
           </p>
         </div>
 
-        <button
-          type="button"
-          className="inventory-primary-button"
-          onClick={toggleForm}
-          disabled={
-            isLoading ||
-            preparedProducts.length === 0 ||
-            supplies.length === 0
-          }
-          title={
-            !isLoading && preparedProducts.length === 0
-              ? 'No hay productos preparados disponibles para asignar una receta'
-              : undefined
-          }
-        >
-          <Plus size={20} />
-          Nueva receta
-        </button>
+        {canCreateRecipe && (
+          <button
+            type="button"
+            className="inventory-primary-button"
+            onClick={toggleForm}
+            disabled={
+              isLoading ||
+              Boolean(loadError)
+            }
+            title={
+              !isLoading && supplies.length === 0
+                ? 'No hay insumos disponibles en tu sucursal'
+                : undefined
+            }
+          >
+            <Plus size={20} />
+            Nueva receta
+          </button>
+        )}
       </div>
 
       <div className="recipes-toolbar">
@@ -412,10 +439,12 @@ function RecipesPage() {
                       onClick={() =>
                         setPreparationRecipe(recipe)
                       }
-                      disabled={!branches.length}
+                      disabled={!branches.length || ingredients.length === 0}
                       title={
                         !branches.length
                           ? 'No hay sucursales disponibles'
+                          : ingredients.length === 0
+                            ? 'La receta no tiene ingredientes registrados'
                           : undefined
                       }
                     >
@@ -457,7 +486,7 @@ function RecipesPage() {
       </div>
 
       <RecipeForm
-        isOpen={isFormOpen}
+        isOpen={canCreateRecipe && isFormOpen}
         toggle={toggleForm}
         onSubmit={handleCreateRecipe}
         preparedProducts={preparedProducts}
@@ -470,9 +499,12 @@ function RecipesPage() {
         onSubmit={handlePrepareRecipe}
         recipe={preparationRecipe}
         branches={branches}
+        allowBranchSelection={canChooseBranch}
         initialBranchId={
           branches[0]
-            ? String(branches[0].id)
+            ? (canChooseBranch
+                ? String(branches[0].id)
+                : assignedBranchId)
             : ''
         }
       />

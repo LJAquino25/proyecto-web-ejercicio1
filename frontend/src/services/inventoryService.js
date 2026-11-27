@@ -37,6 +37,14 @@ export async function getInventorySupplies() {
   return data
 }
 
+export async function getAvailableInventorySupplies() {
+  const data = await apiRequest('/inventory/supplies/available')
+  if (!Array.isArray(data)) {
+    throw new Error('La respuesta de insumos disponibles no es válida.')
+  }
+  return data
+}
+
 export async function getInventoryRecipes() {
   const data = await apiRequest('/inventory/recipes')
   if (!Array.isArray(data)) {

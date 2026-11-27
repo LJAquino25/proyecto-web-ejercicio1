@@ -12,6 +12,8 @@ import '../../styles/RecipeForm.css'
 
 import RecipeIngredientEditor from './RecipeIngredientEditor'
 
+const NEW_PRODUCT = 'NEW_PRODUCT'
+
 function RecipeForm({
   isOpen,
   toggle,
@@ -20,6 +22,8 @@ function RecipeForm({
   supplies = []
 }) {
   const [productId, setProductId] = useState('')
+  const [newProductName, setNewProductName] = useState('')
+  const [newProductPrice, setNewProductPrice] = useState('')
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -30,6 +34,8 @@ function RecipeForm({
   useEffect(() => {
     if (isOpen) {
       setProductId('')
+      setNewProductName('')
+      setNewProductPrice('')
       setIngredients([
         { rowId: 1, supply_id: '', quantity: '' }
       ])
@@ -39,6 +45,13 @@ function RecipeForm({
 
   const selectedProduct = preparedProducts.find(
     product => Number(product.id) === Number(productId)
+  )
+  const isNewProduct = productId === NEW_PRODUCT
+  const hasValidProduct = Boolean(selectedProduct) || (
+    isNewProduct &&
+    Boolean(newProductName.trim()) &&
+    Number.isFinite(Number(newProductPrice)) &&
+    Number(newProductPrice) > 0
   )
 
   const hasValidIngredients =
@@ -56,7 +69,7 @@ function RecipeForm({
     ).size === ingredients.length
 
   const isValid =
-    Boolean(selectedProduct) &&
+    hasValidProduct &&
     supplies.length > 0 &&
     hasValidIngredients
 
@@ -75,14 +88,23 @@ function RecipeForm({
     setIsSubmitting(true)
 
     try {
-      await onSubmit({
-        product_id: Number(productId),
-        name: selectedProduct.name,
-        ingredients: ingredients.map(({ supply_id, quantity }) => ({
-          id: Number(supply_id),
-          quantity: Number(quantity)
-        }))
-      })
+      const recipeIngredients = ingredients.map(({ supply_id, quantity }) => ({
+        id: Number(supply_id),
+        quantity: Number(quantity)
+      }))
+      if (isNewProduct) {
+        await onSubmit({
+          newProductName: newProductName.trim(),
+          price: Number(newProductPrice),
+          ingredients: recipeIngredients
+        })
+      } else {
+        await onSubmit({
+          product_id: Number(productId),
+          name: selectedProduct.name,
+          ingredients: recipeIngredients
+        })
+      }
     } catch (submitError) {
       setError(
         submitError.message ||
@@ -157,24 +179,53 @@ function RecipeForm({
                     {product.name}
                   </option>
                 ))}
+                <option value={NEW_PRODUCT}>
+                  Crear producto preparado nuevo
+                </option>
               </select>
 
               {preparedProducts.length === 0 && (
                 <small>
-                  No hay productos preparados sin receta registrada.
+                  No hay productos sin receta. Podés crear un producto preparado nuevo.
                 </small>
               )}
             </label>
 
-            <label className="admin-form-field wide">
-              <span>Nombre de la receta</span>
-
-              <input
-                value={selectedProduct?.name || ''}
-                placeholder="Se asignará automáticamente"
-                readOnly
-              />
-            </label>
+            {isNewProduct ? (
+              <>
+                <label className="admin-form-field">
+                  <span>Nombre del producto preparado</span>
+                  <input
+                    value={newProductName}
+                    onChange={event => setNewProductName(event.target.value)}
+                    maxLength={100}
+                    required
+                    disabled={isSubmitting}
+                  />
+                </label>
+                <label className="admin-form-field">
+                  <span>Precio de venta ($)</span>
+                  <input
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    value={newProductPrice}
+                    onChange={event => setNewProductPrice(event.target.value)}
+                    required
+                    disabled={isSubmitting}
+                  />
+                </label>
+              </>
+            ) : (
+              <label className="admin-form-field wide">
+                <span>Nombre de la receta</span>
+                <input
+                  value={selectedProduct?.name || ''}
+                  placeholder="Se asignará automáticamente"
+                  readOnly
+                />
+              </label>
+            )}
           </div>
 
           <RecipeIngredientEditor

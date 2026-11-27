@@ -662,6 +662,7 @@ const togglePayrollForm = () => {
       <PayrollForm
         isOpen={isPayrollFormOpen}
         toggle={() => setIsPayrollFormOpen(false)}
+        branches={branches}
         employees={employees}
         onSubmit={handlePayrollSubmit}
       />

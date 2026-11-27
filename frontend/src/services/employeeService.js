@@ -25,11 +25,11 @@ export async function getPayrolls({ employeeId, period } = {}) {
   return data.payroll
 }
 
-export async function createPayroll({ employeeId, period, fortnight }) {
+export async function createPayroll({ branchId, period, fortnight }) {
   return apiRequest('/hr/payroll', {
     method: 'POST',
     body: JSON.stringify({
-      employee_id: employeeId,
+      branch_id: branchId,
       period,
       fortnight,
     }),

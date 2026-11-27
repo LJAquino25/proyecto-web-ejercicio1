@@ -9,16 +9,22 @@ const getCurrentMonth = () => {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
 }
 
-function PayrollForm({ isOpen, toggle, employees, onSubmit }) {
-  const [employeeId, setEmployeeId] = useState('')
+function PayrollForm({ isOpen, toggle, branches, employees, onSubmit }) {
+  const [branchId, setBranchId] = useState('')
   const [period, setPeriod] = useState(getCurrentMonth)
   const [fortnight, setFortnight] = useState('1')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
+  const activeEmployeeCount = employees.filter(
+    employee =>
+      employee.is_active &&
+      String(employee.branch_id) === branchId
+  ).length
+
   useEffect(() => {
     if (isOpen) {
-      setEmployeeId('')
+      setBranchId('')
       setPeriod(getCurrentMonth())
       setFortnight('1')
       setError('')
@@ -32,7 +38,7 @@ function PayrollForm({ isOpen, toggle, employees, onSubmit }) {
 
     try {
       await onSubmit({
-        employeeId: Number(employeeId),
+        branchId: Number(branchId),
         period: `${period}-01`,
         fortnight: Number(fortnight)
       })
@@ -80,30 +86,36 @@ function PayrollForm({ isOpen, toggle, employees, onSubmit }) {
         </div>
 
         <p className="admin-form-description">
-          La planilla se calcula para un empleado y una quincena. Los descuentos
-          se determinan automáticamente según el salario registrado.
+          La planilla se calcula para todos los empleados activos de la sucursal
+          seleccionada. Los descuentos se determinan automáticamente según el
+          salario registrado.
         </p>
 
         {error && <p className="team-page-error" role="alert">{error}</p>}
 
         <form onSubmit={handleSubmit}>
           <label className="admin-form-field">
-            <span>Empleado</span>
+            <span>Sucursal</span>
             <select
-              value={employeeId}
-              onChange={event => setEmployeeId(event.target.value)}
+              value={branchId}
+              onChange={event => setBranchId(event.target.value)}
               required
-              disabled={employees.length === 0 || submitting}
+              disabled={branches.length === 0 || submitting}
             >
               <option value="">
-                {employees.length ? 'Seleccionar empleado' : 'No hay empleados registrados'}
+                {branches.length ? 'Seleccionar sucursal' : 'No hay sucursales disponibles'}
               </option>
-              {employees.map(employee => (
-                <option key={employee.id} value={employee.id}>
-                  {employee.full_name} · {employee.branch_name}
+              {branches.map(branch => (
+                <option key={branch.id} value={branch.id}>
+                  {branch.name}
                 </option>
               ))}
             </select>
+            <small>
+              {branchId
+                ? `${activeEmployeeCount} empleados activos incluidos`
+                : 'Se incluirá al personal activo de la sucursal'}
+            </small>
           </label>
 
           <div className="admin-form-grid payroll-form-grid">
@@ -144,7 +156,7 @@ function PayrollForm({ isOpen, toggle, employees, onSubmit }) {
             <button
               type="submit"
               className="admin-form-submit"
-              disabled={submitting || !employees.length}
+              disabled={submitting || !branchId || activeEmployeeCount === 0}
             >
               <CalendarDays size={18} />
               {submitting ? 'Generando...' : 'Generar planilla'}

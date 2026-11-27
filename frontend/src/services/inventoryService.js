@@ -77,6 +77,13 @@ export async function addCatalogProduct({
   })
 }
 
+export async function updateCatalogProduct(id, changes) {
+  return apiRequest(`/inventory/catalog/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(changes),
+  })
+}
+
 export async function prepareInventoryRecipe({ id, quantity, branch_id }) {
   return apiRequest('/inventory/prepare', {
     method: 'POST',

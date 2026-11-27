@@ -17,16 +17,23 @@ import '../../styles/CatalogPage.css'
 
 import CatalogForm from '../../components/admin/CatalogForm'
 import CatalogDetail from '../../components/admin/CatalogDetail'
+import CatalogEditForm from '../../components/admin/CatalogEditForm'
 
-import { getCatalog } from '../../services/catalogService'
+import { getCatalogDetails } from '../../services/catalogService'
+import { getSession } from '../../services/authService'
 
 import {
   addCatalogProduct,
   getInventorySupplies,
-  getSuppliers
+  getSuppliers,
+  updateCatalogProduct
 } from '../../services/inventoryService'
 
 function CatalogPage() {
+  // Solo el gerente crea y edita productos (el backend también lo valida)
+  const canEdit = getSession()?.role?.toUpperCase() === 'GERENTE'
+  const [editingProduct, setEditingProduct] = useState(null)
+
   const [searchTerm, setSearchTerm] = useState('')
   const [typeFilter, setTypeFilter] = useState('ALL')
 
@@ -48,7 +55,7 @@ function CatalogPage() {
     setProducts([])
 
     try {
-      setProducts(await getCatalog())
+      setProducts(await getCatalogDetails())
     } catch (error) {
       setLoadError(
         error.message || 'No se pudo cargar el catálogo.'
@@ -130,6 +137,12 @@ function CatalogPage() {
     await loadProducts()
   }
 
+  const handleEditProduct = async (id, changes) => {
+    await updateCatalogProduct(id, changes)
+    setEditingProduct(null)
+    await loadProducts()
+  }
+
   const toggleForm = () => {
     setIsFormOpen(previous => !previous)
   }
@@ -148,14 +161,16 @@ function CatalogPage() {
           <p>Administrá los productos disponibles para la venta.</p>
         </div>
 
-        <button
-          type="button"
-          className="inventory-primary-button"
-          onClick={toggleForm}
-        >
-          <Plus size={20} />
-          Nuevo producto
-        </button>
+        {canEdit && (
+          <button
+            type="button"
+            className="inventory-primary-button"
+            onClick={toggleForm}
+          >
+            <Plus size={20} />
+            Nuevo producto
+          </button>
+        )}
       </div>
 
       <div className="inventory-stats">
@@ -273,15 +288,17 @@ function CatalogPage() {
 
                   <td>
                     <div className="catalog-actions">
-                      <button
-                        type="button"
-                        className="catalog-action edit"
-                        title="Editar producto"
-                        aria-label="Editar producto"
-                        disabled
-                      >
-                        <Pencil size={17} />
-                      </button>
+                      {canEdit && (
+                        <button
+                          type="button"
+                          className="catalog-action edit"
+                          title="Editar producto"
+                          aria-label={`Editar ${product.name}`}
+                          onClick={() => setEditingProduct(product)}
+                        >
+                          <Pencil size={17} />
+                        </button>
+                      )}
 
                       <button
                         type="button"
@@ -345,8 +362,25 @@ function CatalogPage() {
         suppliesError={suppliesError}
       />
 
+      {editingProduct && (
+        <CatalogEditForm
+          key={editingProduct.id}
+          product={editingProduct}
+          toggle={() => setEditingProduct(null)}
+          onSubmit={handleEditProduct}
+          suppliers={suppliers}
+          suppliersError={supplierError}
+        />
+      )}
+
       <CatalogDetail
-        product={selectedProduct}
+        product={selectedProduct && {
+          ...selectedProduct,
+          supplier_name: suppliers.find(
+            supplier =>
+              Number(supplier.id) === Number(selectedProduct.supplier_id)
+          )?.name
+        }}
         onClose={() => setSelectedProduct(null)}
       />
     </section>

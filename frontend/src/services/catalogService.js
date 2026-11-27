@@ -4,6 +4,10 @@ export async function getCatalog() {
   return apiRequest('/inventory/catalog')
 }
 
+export async function getCatalogDetails() {
+  return apiRequest('/inventory/catalog/details')
+}
+
 export async function getBranches() {
   const data = await apiRequest('/branches')
   if (!Array.isArray(data?.branches)) {

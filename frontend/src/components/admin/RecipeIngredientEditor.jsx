@@ -114,9 +114,9 @@ function RecipeIngredientEditor({
                         event.target.value
                       )
                     }
-                    min="0.001"
-                    step="0.001"
-                    placeholder="0.000"
+                   min={selectedSupply?.unit === 'UNIT' ? '1' : '0.001'}
+step={selectedSupply?.unit === 'UNIT' ? '1' : '0.001'}
+placeholder={selectedSupply?.unit === 'UNIT' ? '0' : '0.000'}
                     required
                     disabled={disabled}
                   />

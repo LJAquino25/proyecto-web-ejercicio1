@@ -175,3 +175,23 @@
   background: #e8ebf3;
   border-color: var(--color-blue);
 }
+
+.recipe-stock-item {
+  padding: 12px 0;
+  line-height: 1.6;
+  list-style: none;
+}
+
+.recipe-stock-item + .recipe-stock-item {
+  border-top: 1px solid #d8cfc3;
+}
+
+.recipe-stock-missing {
+  color: #DB1374;
+  font-weight: 700;
+}
+
+.recipe-stock-available {
+  color: #32654d;
+  font-weight: 700;
+}

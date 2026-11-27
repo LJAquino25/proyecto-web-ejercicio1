@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Modal, ModalBody } from 'reactstrap'
 import {
   BookOpen,
@@ -19,8 +19,12 @@ function RecipeForm({
   toggle,
   onSubmit,
   preparedProducts = [],
-  supplies = []
+  supplies = [],
+  recipe = null,
+  productName = ''
 }) {
+  const isEditing = Boolean(recipe)
+
   const [productId, setProductId] = useState('')
   const [newProductName, setNewProductName] = useState('')
   const [newProductPrice, setNewProductPrice] = useState('')
@@ -32,45 +36,99 @@ function RecipeForm({
   ])
 
   useEffect(() => {
-    if (isOpen) {
+    if (!isOpen) return
+
+    setError('')
+    setNewProductName('')
+    setNewProductPrice('')
+
+    if (recipe) {
+      setProductId(String(recipe.product_id))
+
+      setIngredients(
+        recipe.ingredients?.length
+          ? recipe.ingredients.map((ingredient, index) => ({
+              rowId: index + 1,
+              supply_id: String(ingredient.supply_id),
+              quantity: String(ingredient.quantity_used)
+            }))
+          : [{ rowId: 1, supply_id: '', quantity: '' }]
+      )
+    } else {
       setProductId('')
-      setNewProductName('')
-      setNewProductPrice('')
       setIngredients([
         { rowId: 1, supply_id: '', quantity: '' }
       ])
-      setError('')
     }
-  }, [isOpen])
+  }, [isOpen, recipe])
+
+  const availableSupplies = useMemo(() => {
+    const supplyMap = new Map(
+      supplies.map(supply => [Number(supply.id), supply])
+    )
+
+    if (recipe) {
+      for (const ingredient of recipe.ingredients || []) {
+        const id = Number(ingredient.supply_id)
+
+        if (!supplyMap.has(id)) {
+          supplyMap.set(id, {
+            id,
+            name: ingredient.name,
+            unit: ingredient.unit,
+            supplier_id: ingredient.supplier_id
+          })
+        }
+      }
+    }
+
+    return Array.from(supplyMap.values())
+  }, [supplies, recipe])
 
   const selectedProduct = preparedProducts.find(
     product => Number(product.id) === Number(productId)
   )
-  const isNewProduct = productId === NEW_PRODUCT
-  const hasValidProduct = Boolean(selectedProduct) || (
-    isNewProduct &&
-    Boolean(newProductName.trim()) &&
-    Number.isFinite(Number(newProductPrice)) &&
-    Number(newProductPrice) > 0
-  )
+
+  const isNewProduct =
+    !isEditing && productId === NEW_PRODUCT
+
+  const hasValidProduct =
+    isEditing ||
+    Boolean(selectedProduct) ||
+    (
+      isNewProduct &&
+      Boolean(newProductName.trim()) &&
+      Number.isFinite(Number(newProductPrice)) &&
+      Number(newProductPrice) > 0
+    )
 
   const hasValidIngredients =
     ingredients.length > 0 &&
-    ingredients.every(ingredient =>
-      supplies.some(
-        supply =>
-          Number(supply.id) === Number(ingredient.supply_id)
-      ) &&
-      Number.isFinite(Number(ingredient.quantity)) &&
-      Number(ingredient.quantity) > 0
-    ) &&
+    ingredients.every(ingredient => {
+      const supply = availableSupplies.find(
+        item => Number(item.id) === Number(ingredient.supply_id)
+      )
+
+      const quantity = Number(ingredient.quantity)
+
+      return (
+        Boolean(supply) &&
+        Number.isFinite(quantity) &&
+        quantity > 0 &&
+        Number(quantity.toFixed(3)) === quantity &&
+        (
+          supply.unit !== 'UNIT' ||
+          Number.isInteger(quantity)
+        )
+      )
+    }) &&
     new Set(
       ingredients.map(ingredient => Number(ingredient.supply_id))
     ).size === ingredients.length
 
   const isValid =
     hasValidProduct &&
-    supplies.length > 0 &&
+    availableSupplies.length > 0 &&
     hasValidIngredients
 
   const handleClose = () => {
@@ -88,11 +146,19 @@ function RecipeForm({
     setIsSubmitting(true)
 
     try {
-      const recipeIngredients = ingredients.map(({ supply_id, quantity }) => ({
-        id: Number(supply_id),
-        quantity: Number(quantity)
-      }))
-      if (isNewProduct) {
+      const recipeIngredients = ingredients.map(
+        ({ supply_id, quantity }) => ({
+          id: Number(supply_id),
+          quantity: Number(quantity)
+        })
+      )
+
+      if (isEditing) {
+        await onSubmit({
+          recipeId: Number(recipe.id),
+          ingredients: recipeIngredients
+        })
+      } else if (isNewProduct) {
         await onSubmit({
           newProductName: newProductName.trim(),
           price: Number(newProductPrice),
@@ -108,7 +174,11 @@ function RecipeForm({
     } catch (submitError) {
       setError(
         submitError.message ||
-        'No se pudo registrar la receta.'
+        (
+          isEditing
+            ? 'No se pudo actualizar la receta.'
+            : 'No se pudo registrar la receta.'
+        )
       )
     } finally {
       setIsSubmitting(false)
@@ -122,6 +192,8 @@ function RecipeForm({
       centered
       scrollable
       size="lg"
+      backdrop={isSubmitting ? 'static' : true}
+      keyboard={!isSubmitting}
       className="admin-form-modal"
     >
       <ModalBody className="admin-form-body">
@@ -135,7 +207,9 @@ function RecipeForm({
               RECETAS
             </span>
 
-            <h2>Nueva receta</h2>
+            <h2>
+              {isEditing ? 'Editar receta' : 'Nueva receta'}
+            </h2>
           </div>
 
           <button
@@ -150,87 +224,116 @@ function RecipeForm({
         </div>
 
         <p className="admin-form-description">
-          Definí los ingredientes y cantidades necesarios
-          para elaborar un producto.
+          {isEditing
+            ? 'Modificá los ingredientes y cantidades de esta preparación.'
+            : 'Definí los ingredientes y cantidades necesarios para elaborar un producto.'}
         </p>
 
         <form onSubmit={handleSubmit}>
           <div className="admin-form-grid">
-            <label className="admin-form-field wide">
-              <span>Producto preparado</span>
-
-              <select
-                value={productId}
-                onChange={event =>
-                  setProductId(event.target.value)
-                }
-                disabled={isSubmitting}
-                required
-              >
-                <option value="">
-                  Seleccionar producto
-                </option>
-
-                {preparedProducts.map(product => (
-                  <option
-                    key={product.id}
-                    value={product.id}
-                  >
-                    {product.name}
-                  </option>
-                ))}
-                <option value={NEW_PRODUCT}>
-                  Crear producto preparado nuevo
-                </option>
-              </select>
-
-              {preparedProducts.length === 0 && (
-                <small>
-                  No hay productos sin receta. Podés crear un producto preparado nuevo.
-                </small>
-              )}
-            </label>
-
-            {isNewProduct ? (
+            {isEditing ? (
               <>
-                <label className="admin-form-field">
-                  <span>Nombre del producto preparado</span>
+                <label className="admin-form-field wide">
+                  <span>Producto preparado</span>
                   <input
-                    value={newProductName}
-                    onChange={event => setNewProductName(event.target.value)}
-                    maxLength={100}
-                    required
-                    disabled={isSubmitting}
+                    value={productName || recipe.name}
+                    readOnly
                   />
                 </label>
-                <label className="admin-form-field">
-                  <span>Precio de venta ($)</span>
+
+                <label className="admin-form-field wide">
+                  <span>Nombre de la receta</span>
                   <input
-                    type="number"
-                    min="0.01"
-                    step="0.01"
-                    value={newProductPrice}
-                    onChange={event => setNewProductPrice(event.target.value)}
-                    required
-                    disabled={isSubmitting}
+                    value={recipe.name}
+                    readOnly
                   />
                 </label>
               </>
             ) : (
-              <label className="admin-form-field wide">
-                <span>Nombre de la receta</span>
-                <input
-                  value={selectedProduct?.name || ''}
-                  placeholder="Se asignará automáticamente"
-                  readOnly
-                />
-              </label>
+              <>
+                <label className="admin-form-field wide">
+                  <span>Producto preparado</span>
+
+                  <select
+                    value={productId}
+                    onChange={event =>
+                      setProductId(event.target.value)
+                    }
+                    disabled={isSubmitting}
+                    required
+                  >
+                    <option value="">
+                      Seleccionar producto
+                    </option>
+
+                    {preparedProducts.map(product => (
+                      <option
+                        key={product.id}
+                        value={product.id}
+                      >
+                        {product.name}
+                      </option>
+                    ))}
+
+                    <option value={NEW_PRODUCT}>
+                      Crear producto preparado nuevo
+                    </option>
+                  </select>
+
+                  {preparedProducts.length === 0 && (
+                    <small>
+                      No hay productos sin receta. Podés crear un producto preparado nuevo.
+                    </small>
+                  )}
+                </label>
+
+                {isNewProduct ? (
+                  <>
+                    <label className="admin-form-field">
+                      <span>Nombre del producto preparado</span>
+                      <input
+                        value={newProductName}
+                        onChange={event =>
+                          setNewProductName(event.target.value)
+                        }
+                        maxLength={100}
+                        required
+                        disabled={isSubmitting}
+                      />
+                    </label>
+
+                    <label className="admin-form-field">
+                      <span>Precio de venta ($)</span>
+                      <input
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        value={newProductPrice}
+                        onChange={event =>
+                          setNewProductPrice(event.target.value)
+                        }
+                        required
+                        disabled={isSubmitting}
+                      />
+                    </label>
+                  </>
+                ) : (
+                  <label className="admin-form-field wide">
+                    <span>Nombre de la receta</span>
+                    <input
+                      value={selectedProduct?.name || ''}
+                      placeholder="Se asignará automáticamente"
+                      readOnly
+                    />
+                  </label>
+                )}
+              </>
             )}
           </div>
 
           <RecipeIngredientEditor
             ingredients={ingredients}
-            supplies={supplies}
+            supplies={availableSupplies}
             onChange={setIngredients}
             disabled={isSubmitting}
           />
@@ -239,20 +342,23 @@ function RecipeForm({
             <Info size={21} />
 
             <div>
-              <strong>Unidad de medida automática</strong>
+              <strong>
+                {isEditing
+                  ? 'Actualización de receta'
+                  : 'Unidad de medida automática'}
+              </strong>
 
               <p>
-                Cada ingrediente utiliza la unidad de medida
-                registrada en el inventario. Las cantidades
-                corresponden a una preparación del producto.
+                {isEditing
+                  ? 'Los cambios se aplicarán a las próximas preparaciones. No se modificarán las existencias actuales.'
+                  : 'Cada ingrediente utiliza la unidad de medida registrada en el inventario. Las cantidades corresponden a una preparación del producto.'}
               </p>
             </div>
           </div>
 
-          {supplies.length === 0 && (
+          {availableSupplies.length === 0 && (
             <p className="admin-form-error" role="alert">
-              Registrá insumos en el inventario antes
-              de crear recetas.
+              No hay insumos disponibles para esta receta.
             </p>
           )}
 
@@ -285,7 +391,9 @@ function RecipeForm({
 
               {isSubmitting
                 ? 'Guardando...'
-                : 'Registrar receta'}
+                : isEditing
+                  ? 'Guardar cambios'
+                  : 'Registrar receta'}
             </button>
           </div>
         </form>

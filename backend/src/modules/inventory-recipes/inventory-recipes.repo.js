@@ -43,9 +43,12 @@ const upsertBranchSupplyInventory = async (
 
 const getInventoryByBranch = async (branchId, db = pool) => {
   const result = await db.query(
-    `SELECT s.id, s.name, s.unit, bsi.quantity, bsi.min_stock
+    `SELECT s.id, s.name, s.unit,
+            s.supplier_id, sp.name AS supplier_name,
+            bsi.quantity, bsi.min_stock
      FROM branch_supply_inventory bsi
      JOIN supply s ON bsi.supply_id = s.id
+     LEFT JOIN supplier sp ON s.supplier_id = sp.id
      WHERE bsi.branch_id = $1
      ORDER BY s.id ASC`,
     [branchId],
@@ -109,6 +112,34 @@ const createRecipeDetail = async (
   return result.rows[0];
 };
 
+const lockRecipeById = async (recipeId, db = pool) => {
+  const result = await db.query(
+    `SELECT id, product_id, name, description
+     FROM recipe
+     WHERE id = $1
+     FOR UPDATE`,
+    [recipeId],
+  );
+  return result.rows[0] || null;
+};
+
+const deleteRecipeDetails = async (recipeId, db = pool) => {
+  await db.query(
+    "DELETE FROM recipe_detail WHERE recipe_id = $1",
+    [recipeId],
+  );
+};
+
+const getSuppliesByIds = async (supplyIds, db = pool) => {
+  const result = await db.query(
+    `SELECT id, name, unit
+     FROM supply
+     WHERE id = ANY($1::int[])`,
+    [supplyIds],
+  );
+  return result.rows;
+};
+
 const getAllRecipes = async (db = pool) => {
   const result = await db.query(`
     SELECT r.id, r.product_id, r.name, r.description,
@@ -116,11 +147,14 @@ const getAllRecipes = async (db = pool) => {
              'supply_id', s.id,
              'name', s.name,
              'unit', s.unit,
-             'quantity_used', rd.quantity_used
+             'quantity_used', rd.quantity_used,
+             'supplier_id', s.supplier_id,
+             'supplier_name', sp.name
            )) FILTER (WHERE rd.supply_id IS NOT NULL), '[]'::json) AS ingredients
     FROM recipe r
     LEFT JOIN recipe_detail rd ON r.id = rd.recipe_id
     LEFT JOIN supply s ON rd.supply_id = s.id
+    LEFT JOIN supplier sp ON s.supplier_id = sp.id
     GROUP BY r.id
     ORDER BY r.id ASC
   `);
@@ -128,7 +162,11 @@ const getAllRecipes = async (db = pool) => {
 };
 
 const getCatalog = async (db = pool) => {
-  const result = await db.query("SELECT id, name, price, product_type FROM product");
+  const result = await db.query(`
+    SELECT id, name, price, product_type
+    FROM product
+    ORDER BY product_type ASC, id ASC
+  `);
   return result.rows;
 };
 
@@ -305,4 +343,7 @@ module.exports = {
   createPackagedProduct,
   getProductsWithSupplierInfo,
   getPackagedInventoryByBranch,
+  lockRecipeById,
+  deleteRecipeDetails,
+  getSuppliesByIds,
 };

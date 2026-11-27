@@ -230,6 +230,149 @@ const addRecipe = async ({
   }
 };
 
+const updateRecipe = async ({
+  recipeId,
+  ingredients,
+  branchId = null,
+}) => {
+  const parsedRecipeId = Number(recipeId);
+
+  if (!Number.isInteger(parsedRecipeId) || parsedRecipeId <= 0) {
+    throw createHttpError(400, "ID de receta no válido");
+  }
+
+  const normalizedIngredients = normalizeIngredients(ingredients);
+
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const recipe = await inventoryRecipesRepo.lockRecipeById(
+      parsedRecipeId,
+      client,
+    );
+
+    if (!recipe) {
+      throw createHttpError(404, "Receta no encontrada");
+    }
+
+    const supplyIds = normalizedIngredients.map(
+      (ingredient) => ingredient.supplyId
+    );
+
+    const supplies = await inventoryRecipesRepo.getSuppliesByIds(
+      supplyIds,
+      client,
+    );
+
+    if (supplies.length !== normalizedIngredients.length) {
+      throw createHttpError(400, "Uno o más insumos no existen");
+    }
+
+    const suppliesById = new Map(
+      supplies.map((supply) => [Number(supply.id), supply])
+    );
+
+    for (const ingredient of normalizedIngredients) {
+      const supply = suppliesById.get(ingredient.supplyId);
+
+      if (
+        supply.unit === "UNIT" &&
+        !Number.isInteger(ingredient.quantityUsed)
+      ) {
+        throw createHttpError(
+          400,
+          `${supply.name} debe registrarse en unidades enteras`,
+        );
+      }
+
+      if (
+        Number(ingredient.quantityUsed.toFixed(3)) !==
+        ingredient.quantityUsed
+      ) {
+        throw createHttpError(
+          400,
+          "Las cantidades deben tener un máximo de tres decimales",
+        );
+      }
+    }
+
+    if (branchId !== null) {
+      const currentIngredients =
+        await inventoryRecipesRepo.getRecipeIngredients(
+          parsedRecipeId,
+          client,
+        );
+
+      const currentSupplyIds = new Set(
+        currentIngredients.map((ingredient) =>
+          Number(ingredient.supply_id)
+        )
+      );
+
+      const newSupplyIds = supplyIds.filter(
+        (supplyId) => !currentSupplyIds.has(supplyId)
+      );
+
+      if (newSupplyIds.length > 0) {
+        const availableSupplyIds =
+          await inventoryRecipesRepo.getAvailableSupplyIdsByBranch(
+            Number(branchId),
+            newSupplyIds,
+            client,
+          );
+
+        if (availableSupplyIds.length !== newSupplyIds.length) {
+          throw createHttpError(
+            400,
+            "Los nuevos insumos deben tener existencia en tu sucursal",
+          );
+        }
+      }
+    }
+
+    await inventoryRecipesRepo.deleteRecipeDetails(
+      parsedRecipeId,
+      client,
+    );
+
+    for (const ingredient of normalizedIngredients) {
+      await inventoryRecipesRepo.createRecipeDetail(
+        {
+          recipeId: parsedRecipeId,
+          supplyId: ingredient.supplyId,
+          quantityUsed: ingredient.quantityUsed,
+        },
+        client,
+      );
+    }
+
+    await client.query("COMMIT");
+
+    return {
+      recipe_id: recipe.id,
+      product_id: recipe.product_id,
+      name: recipe.name,
+      ingredients: normalizedIngredients,
+    };
+  } catch (error) {
+    await client.query("ROLLBACK");
+
+    if (error.code === "23503") {
+      throw createHttpError(400, "Uno de los insumos no existe");
+    }
+
+    if (error.code === "22003") {
+      throw createHttpError(400, "La cantidad ingresada es demasiado grande");
+    }
+
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
 const listRecipes = async () => {
   return await inventoryRecipesRepo.getAllRecipes();
 };
@@ -269,10 +412,19 @@ const prepareRecipe = async ({
   try {
     await client.query("BEGIN");
 
-    const ingredients = await inventoryRecipesRepo.getRecipeIngredients(
-      parsedRecipeId,
-      client,
-    );
+const recipe = await inventoryRecipesRepo.lockRecipeById(
+  parsedRecipeId,
+  client,
+);
+
+if (!recipe) {
+  throw createHttpError(404, "Receta no encontrada");
+}
+
+const ingredients = await inventoryRecipesRepo.getRecipeIngredients(
+  parsedRecipeId,
+  client,
+);
 
     if (ingredients.length === 0) {
       throw createHttpError(404, "No se encontró la receta o no tiene ingredientes");
@@ -509,4 +661,5 @@ module.exports = {
   addCatalog,
   listCatalogDetails,
   listPackagedInventory,
+  updateRecipe,
 };

@@ -8,6 +8,7 @@ const {
   listAvailableSupplies,
   addRecipes,
   listRecipes,
+  editRecipe,
   alertStock,
   prepareRecipe,
   addCatalog,
@@ -15,6 +16,7 @@ const {
   listPackagedInventory,
   editCatalog,
 } = require("../../modules/inventory-recipes/inventory-recipes.controller.js");
+
 const {
   requireEmployee,
   requireAdmin,
@@ -27,6 +29,7 @@ router.get("/supplies", requireEmployee, listSupplies);
 router.get("/supplies/available", requireEmployee, listAvailableSupplies);
 router.post("/recipes", requireKitchenStaff, addRecipes);
 router.get("/recipes", requireEmployee, listRecipes);
+router.put("/recipes/:id", requireKitchenStaff, editRecipe);
 router.get("/inventory/alerts", requireEmployee, alertStock);
 router.post("/prepare", requireEmployee, prepareRecipe);
 router.post("/catalog", requireKitchenStaff, addCatalog);

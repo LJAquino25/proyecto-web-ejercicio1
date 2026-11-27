@@ -194,23 +194,30 @@ function InventoryPage() {
     }
   ]
 
-  const filteredProducts = useMemo(() => {
-    return products.filter(product => {
-      const matchesSearch = product.name
-        .toLowerCase()
-        .includes(searchTerm.trim().toLowerCase())
+const filteredProducts = useMemo(() => {
+  const search = searchTerm.trim().toLowerCase()
 
-      const isLowStock =
-        Number(product.quantity) <= Number(product.min_stock)
+  return products.filter(product => {
+    const matchesSearch =
+      product.name.toLowerCase().includes(search) ||
+      (
+        isSupplies &&
+        (product.supplier_name || '')
+          .toLowerCase()
+          .includes(search)
+      )
 
-      const matchesStock =
-        stockFilter === 'ALL' ||
-        (stockFilter === 'LOW' && isLowStock) ||
-        (stockFilter === 'AVAILABLE' && !isLowStock)
+    const isLowStock =
+      Number(product.quantity) <= Number(product.min_stock)
 
-      return matchesSearch && matchesStock
-    })
-  }, [products, searchTerm, stockFilter])
+    const matchesStock =
+      stockFilter === 'ALL' ||
+      (stockFilter === 'LOW' && isLowStock) ||
+      (stockFilter === 'AVAILABLE' && !isLowStock)
+
+    return matchesSearch && matchesStock
+  })
+}, [products, searchTerm, stockFilter, isSupplies])
 
   return (
     <section className="inventory-page">
@@ -349,7 +356,7 @@ function InventoryPage() {
           <label className="inventory-field">
             <span>
               {isSupplies
-                ? 'Buscar insumo'
+                ? 'Buscar insumo o proveedor'
                 : 'Buscar producto'}
             </span>
 
@@ -358,7 +365,11 @@ function InventoryPage() {
 
               <input
                 type="search"
-                placeholder="Buscar por nombre..."
+                placeholder={
+  isSupplies
+    ? 'Buscar insumo o proveedor...'
+    : 'Buscar por nombre...'
+}
                 value={searchTerm}
                 onChange={event =>
                   setSearchTerm(event.target.value)
@@ -394,16 +405,19 @@ function InventoryPage() {
         <div className="inventory-table-wrapper">
           <table className="inventory-table">
             <thead>
-              <tr>
-                <th>
-                  {isSupplies ? 'Insumo' : 'Producto'}
-                </th>
-                <th>Existencia</th>
-                <th>Unidad</th>
-                <th>Stock mínimo</th>
-                <th>Estado</th>
-              </tr>
-            </thead>
+  <tr>
+    <th>
+      {isSupplies ? 'Insumo' : 'Producto'}
+    </th>
+
+    {isSupplies && <th>Proveedor</th>}
+
+    <th>Existencia</th>
+    <th>Unidad</th>
+    <th>Stock mínimo</th>
+    <th>Estado</th>
+  </tr>
+</thead>
 
             <tbody>
               {!isLoading && !loadError && filteredProducts.map(product => {
@@ -412,15 +426,20 @@ function InventoryPage() {
                   Number(product.min_stock)
 
                 return (
-                  <tr key={product.id}>
-                    <td>
-                      <strong>{product.name}</strong>
-                    </td>
+                 <tr key={product.id}>
+  <td>
+    <strong>{product.name}</strong>
+  </td>
 
-                    <td>
-                      {formatQuantity(product.quantity)}
-                    </td>
+  {isSupplies && (
+    <td>
+      {product.supplier_name || 'No identificado'}
+    </td>
+  )}
 
+  <td>
+    {formatQuantity(product.quantity)}
+  </td>
                     <td>
                       {UNIT_LABELS[
                         String(product.unit).toUpperCase()
@@ -454,7 +473,7 @@ function InventoryPage() {
 
               {isLoading && (
                 <tr>
-                  <td colSpan={5} className="inventory-empty">
+                  <td colSpan={isSupplies ? 6 : 5} className="inventory-empty">
                     Cargando existencias...
                   </td>
                 </tr>
@@ -464,7 +483,7 @@ function InventoryPage() {
                 !loadError &&
                 filteredProducts.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="inventory-empty">
+                    <td colSpan={isSupplies ? 6 : 5} className="inventory-empty">
                       {branchId
                         ? (isSupplies ? 'No se encontraron insumos.' : 'No se encontraron productos empaquetados.')
                         : 'Seleccioná una sucursal.'}

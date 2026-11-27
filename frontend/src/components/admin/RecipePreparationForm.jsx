@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Modal, ModalBody } from 'reactstrap'
 import { CookingPot, X, Check } from 'lucide-react'
 import '../../styles/AdminForm.css'
+import '../../styles/RecipeForm.css'
 import { getBranchInventory } from '../../services/inventoryService'
 
 function RecipePreparationForm({
@@ -202,12 +203,37 @@ function RecipePreparationForm({
               ) : (
                 <ul>
                   {ingredientStock.map(ingredient => (
-                    <li key={ingredient.supply_id}>
-                      {ingredient.name}: {ingredient.available} {ingredient.unit}
-                      {' '}(necesita {ingredient.required})
-                      {ingredient.available < ingredient.required ? ' — Insuficiente' : ''}
-                    </li>
-                  ))}
+  <li
+    key={ingredient.supply_id}
+    className="recipe-stock-item"
+  >
+    <strong>{ingredient.name}</strong>
+
+    <div>
+      Proveedor: {ingredient.supplier_name || 'No identificado'}
+    </div>
+
+    <div>
+      Disponible: {ingredient.available} {ingredient.unit}
+    </div>
+
+    <div>
+      Necesario: {ingredient.required} {ingredient.unit}
+    </div>
+
+    {ingredient.available < ingredient.required ? (
+      <div className="recipe-stock-missing">
+        Faltan {Number(
+          (ingredient.required - ingredient.available).toFixed(3)
+        )} {ingredient.unit}
+      </div>
+    ) : (
+      <div className="recipe-stock-available">
+        Stock suficiente
+      </div>
+    )}
+  </li>
+))}
                 </ul>
               )}
             </div>

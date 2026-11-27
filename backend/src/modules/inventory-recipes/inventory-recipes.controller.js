@@ -119,6 +119,37 @@ const addRecipes = async (req, res) => {
   }
 };
 
+const editRecipe = async (req, res) => {
+  try {
+    const role = String(req.user?.role || "").toUpperCase();
+
+    if (!["GERENTE", "COCINERO"].includes(role)) {
+      return res.status(403).json({
+        message: "No tenés permisos para editar recetas",
+      });
+    }
+
+    const result = await inventoryRecipesService.updateRecipe({
+      recipeId: Number(req.params.id),
+      ingredients: req.body.ingredients,
+      branchId: role === "GERENTE"
+        ? null
+        : resolveBranchId(req, undefined),
+    });
+
+    return res.status(200).json({
+      message: "Receta actualizada correctamente",
+      ...result,
+    });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({
+      message: error.statusCode
+        ? error.message
+        : "Error al actualizar la receta",
+    });
+  }
+};
+
 const listRecipes = async (req, res) => {
   try {
     const recipes = await inventoryRecipesService.listRecipes();
@@ -262,4 +293,5 @@ module.exports = {
   addCatalog,
   listCatalogDetails,
   listPackagedInventory,
+  editRecipe,
 };

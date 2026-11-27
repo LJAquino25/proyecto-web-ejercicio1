@@ -64,6 +64,15 @@ export async function createInventoryRecipe({
   })
 }
 
+export const updateInventoryRecipe = async (recipeId, ingredients) => {
+  return await apiRequest(`/inventory/recipes/${recipeId}`, {
+    method: 'PUT',
+    body: JSON.stringify({
+      ingredients
+    })
+  })
+}
+
 export async function addCatalogProduct({
   name,
   price,

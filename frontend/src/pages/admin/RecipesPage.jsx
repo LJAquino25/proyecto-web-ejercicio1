@@ -33,6 +33,7 @@ import { getSession } from '../../services/authService'
 import {
   addCatalogProduct,
   createInventoryRecipe,
+  updateInventoryRecipe,
   getInventoryRecipes,
   getAvailableInventorySupplies,
   prepareInventoryRecipe
@@ -66,7 +67,9 @@ function RecipesPage() {
   const [loadError, setLoadError] = useState('')
 
   const [isLoading, setIsLoading] = useState(true)
+
   const [isFormOpen, setIsFormOpen] = useState(false)
+  const [editingRecipe, setEditingRecipe] = useState(null)
   const [preparationRecipe, setPreparationRecipe] = useState(null)
 
   const loadData = useCallback(async () => {
@@ -163,9 +166,15 @@ function RecipesPage() {
     [catalog]
   )
 
-  const toggleForm = () => {
-    setIsFormOpen(previous => !previous)
-  }
+ const toggleForm = () => {
+  setEditingRecipe(null)
+  setIsFormOpen(previous => !previous)
+}
+
+const openEditForm = recipe => {
+  setEditingRecipe(recipe)
+  setIsFormOpen(true)
+}
 
   const toggleRecipe = id => {
     setExpandedRecipes(previous =>
@@ -207,6 +216,18 @@ function RecipesPage() {
 
     await loadData()
   }
+
+  const handleEditRecipe = async form => {
+  await updateInventoryRecipe(
+    form.recipeId,
+    form.ingredients
+  )
+
+  setIsFormOpen(false)
+  setEditingRecipe(null)
+
+  await loadData()
+}
 
   const handlePrepareRecipe = form =>
     prepareInventoryRecipe(form)
@@ -378,40 +399,45 @@ function RecipesPage() {
                           <th>Ingrediente</th>
                           <th>Cantidad</th>
                           <th>Unidad de medida</th>
+                          <th>Proveedor</th>
                         </tr>
                       </thead>
 
                       <tbody>
                         {ingredients.map(ingredient => (
-                          <tr key={ingredient.supply_id}>
-                            <td>
-                              <strong>
-                                {ingredient.name}
-                              </strong>
-                            </td>
+  <tr key={ingredient.supply_id}>
+    <td>
+      <strong>
+        {ingredient.name}
+      </strong>
+    </td>
 
-                            <td>
-                              {Number(
-                                ingredient.quantity_used
-                              ).toLocaleString('es-SV', {
-                                maximumFractionDigits: 3
-                              })}
-                            </td>
+    <td>
+      {Number(
+        ingredient.quantity_used
+      ).toLocaleString('es-SV', {
+        maximumFractionDigits: 3
+      })}
+    </td>
 
-                            <td>
-                              {UNIT_LABELS[
-                                String(
-                                  ingredient.unit
-                                ).toUpperCase()
-                              ] || ingredient.unit}
-                            </td>
-                          </tr>
-                        ))}
+    <td>
+      {UNIT_LABELS[
+        String(
+          ingredient.unit
+        ).toUpperCase()
+      ] || ingredient.unit}
+    </td>
+
+    <td>
+      {ingredient.supplier_name || 'No identificado'}
+    </td>
+  </tr>
+))}
 
                         {ingredients.length === 0 && (
                           <tr>
                             <td
-                              colSpan={3}
+                              colSpan={4}
                               className="inventory-empty"
                             >
                               No hay ingredientes registrados.
@@ -423,15 +449,17 @@ function RecipesPage() {
                   </div>
 
                   <div className="recipe-card-footer">
-                    <button
-                      type="button"
-                      className="recipe-edit-button"
-                      disabled
-                      title="Pendiente de conexión"
-                    >
-                      <Pencil size={16} />
-                      Editar receta
-                    </button>
+                    {canCreateRecipe && (
+  <button
+    type="button"
+    className="recipe-edit-button"
+    onClick={() => openEditForm(recipe)}
+    disabled={isLoading || Boolean(loadError)}
+  >
+    <Pencil size={16} />
+    Editar receta
+  </button>
+)}
 
                     <button
                       type="button"
@@ -486,12 +514,22 @@ function RecipesPage() {
       </div>
 
       <RecipeForm
-        isOpen={canCreateRecipe && isFormOpen}
-        toggle={toggleForm}
-        onSubmit={handleCreateRecipe}
-        preparedProducts={preparedProducts}
-        supplies={supplies}
-      />
+  isOpen={canCreateRecipe && isFormOpen}
+  toggle={toggleForm}
+  onSubmit={
+    editingRecipe
+      ? handleEditRecipe
+      : handleCreateRecipe
+  }
+  preparedProducts={preparedProducts}
+  supplies={supplies}
+  recipe={editingRecipe}
+  productName={
+    editingRecipe
+      ? productNames.get(Number(editingRecipe.product_id))
+      : ''
+  }
+/>
 
       <RecipePreparationForm
         isOpen={Boolean(preparationRecipe)}

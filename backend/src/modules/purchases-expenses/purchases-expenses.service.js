@@ -465,6 +465,114 @@ const editSupplier = async (id, { name, phone = null }) => {
   });
 };
 
+const listAccountPayables = async () => {
+  return await purchasesExpensesRepo.getAccountPayables();
+};
+
+const addSupplierPayment = async ({
+  accountPayableId,
+  employeeId,
+  amount,
+  method,
+  reference = null
+}) => {
+  const parsedId = Number(accountPayableId);
+  const parsedEmployeeId = Number(employeeId);
+  const parsedAmount = Number(amount);
+  const normalizedMethod = String(method || "").trim().toUpperCase();
+  const cleanReference = String(reference ?? "").trim();
+
+  if (!Number.isInteger(parsedId) || parsedId <= 0) {
+    throw createHttpError(400, "Invalid account payable ID");
+  }
+
+  if (!Number.isInteger(parsedEmployeeId) || parsedEmployeeId <= 0) {
+    throw createHttpError(401, "Invalid employee ID");
+  }
+
+  if (
+    !Number.isFinite(parsedAmount) ||
+    parsedAmount <= 0 ||
+    roundTwo(parsedAmount) !== parsedAmount
+  ) {
+    throw createHttpError(400, "Invalid payment amount");
+  }
+
+  if (!["CASH", "TRANSFER", "CARD"].includes(normalizedMethod)) {
+    throw createHttpError(400, "Invalid payment method");
+  }
+
+  if (cleanReference.length > 100) {
+    throw createHttpError(400, "Reference is too long");
+  }
+
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const payable =
+      await purchasesExpensesRepo.getAccountPayableById(
+        parsedId,
+        client
+      );
+
+    if (!payable) {
+      throw createHttpError(404, "Account payable not found");
+    }
+
+    const balance = Number(payable.pending_balance);
+
+    if (payable.status === "PAID" || balance <= 0) {
+      throw createHttpError(409, "Account is already paid");
+    }
+
+    if (parsedAmount > balance) {
+      throw createHttpError(400, "Payment exceeds pending balance");
+    }
+
+    const pendingBalance = roundTwo(balance - parsedAmount);
+
+    const status = pendingBalance === 0
+      ? "PAID"
+      : "PARTIAL";
+
+    const payment =
+      await purchasesExpensesRepo.createSupplierPayment(
+        {
+          accountPayableId: parsedId,
+          employeeId: parsedEmployeeId,
+          method: normalizedMethod,
+          reference: cleanReference || null,
+          amount: parsedAmount
+        },
+        client
+      );
+
+    const accountPayable =
+      await purchasesExpensesRepo.updateAccountPayableBalance(
+        {
+          id: parsedId,
+          pendingBalance,
+          status
+        },
+        client
+      );
+
+    await client.query("COMMIT");
+
+    return {
+      payment,
+      accountPayable
+    };
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
 module.exports = {
   addSupplier,
   listSuppliers,
@@ -473,5 +581,7 @@ module.exports = {
   addPurchaseInvoice,
   addExpense,
   listExpenses,
-  editSupplier
+  editSupplier,
+  listAccountPayables,
+  addSupplierPayment,
 };

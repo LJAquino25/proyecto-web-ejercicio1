@@ -352,6 +352,104 @@ const updateSupplier = async ({ id, name, phone }) => {
   return rows[0] || null;
 };
 
+const getAccountPayables = async (db = pool) => {
+  const result = await db.query(`
+    SELECT
+      ap.id,
+      ap.purchase_id,
+      ap.supplier_id,
+      s.name AS supplier_name,
+      p.document_num,
+      p.branch_id,
+      b.name AS branch_name,
+      p.issue_date,
+      ap.total_amount,
+      ap.pending_balance,
+      ap.due_date,
+      ap.status,
+      COALESCE(
+        (
+          SELECT json_agg(
+            json_build_object(
+              'id', sp.id,
+              'paid_at', sp.paid_at,
+              'method', sp.method,
+              'reference', sp.reference,
+              'amount', sp.amount
+            )
+            ORDER BY sp.paid_at DESC, sp.id DESC
+          )
+          FROM supplier_payment sp
+          WHERE sp.account_payable_id = ap.id
+        ),
+        '[]'::json
+      ) AS payments
+    FROM account_payable ap
+    JOIN supplier s ON s.id = ap.supplier_id
+    JOIN purchase p ON p.id = ap.purchase_id
+    JOIN branch b ON b.id = p.branch_id
+    WHERE p.status = 'RECORDED'
+    ORDER BY ap.id DESC
+  `);
+
+  return result.rows;
+};
+
+const getAccountPayableById = async (id, db = pool) => {
+  const result = await db.query(`
+    SELECT ap.*
+    FROM account_payable ap
+    JOIN purchase p ON p.id = ap.purchase_id
+    WHERE ap.id = $1
+      AND p.status = 'RECORDED'
+    FOR UPDATE OF ap, p
+  `, [id]);
+
+  return result.rows[0] || null;
+};
+
+const createSupplierPayment = async (
+  { accountPayableId, employeeId, method, reference, amount },
+  db = pool
+) => {
+  const result = await db.query(`
+    INSERT INTO supplier_payment (
+      account_payable_id,
+      employee_id,
+      method,
+      reference,
+      amount,
+      paid_at
+    )
+    VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
+    RETURNING *
+  `, [
+    accountPayableId,
+    employeeId,
+    method,
+    reference,
+    amount
+  ]);
+
+  return result.rows[0];
+};
+
+const updateAccountPayableBalance = async (
+  { id, pendingBalance, status },
+  db = pool
+) => {
+  const result = await db.query(`
+    UPDATE account_payable
+    SET pending_balance = $1,
+        status = $2
+    WHERE id = $3
+    RETURNING *
+  `, [pendingBalance, status, id]);
+
+  return result.rows[0];
+};
+
+
 module.exports = {
   findSupplierByName,
   findSupplierById,
@@ -370,5 +468,9 @@ module.exports = {
   createAccountPayable,
   createGeneralExpense,
   getGeneralExpenses,
-  updateSupplier
+  updateSupplier,
+  getAccountPayables,
+  getAccountPayableById,
+createSupplierPayment,
+updateAccountPayableBalance,
 };

@@ -14,6 +14,54 @@ const getSalary = async ({ employee_id }) => {
     return result.rows[0];
 }
 
+const getEmployee = async ({ branch_id }) => {
+    const result = await pool.query(
+        `SELECT id AS employee_id, monthly_salary
+         FROM employee
+         WHERE branch_id = $1 AND is_active = TRUE
+         ORDER BY id ASC;`,
+        [branch_id]
+    );
+    return result.rows;
+}
+
+const insertMany = async (payrolls) => {
+    const client = await pool.connect();
+
+    try {
+        await client.query("BEGIN");
+
+        const insertedPayrolls = [];
+
+        for (const payroll of payrolls) {
+            const result = await client.query(
+                `INSERT INTO payroll (employee_id, period, fortnight, base_salary, isss, afp, isr) 
+             VALUES($1, $2, $3, $4, $5, $6, $7)
+             RETURNING employee_id, period, fortnight, base_salary, isss, afp, isr, total_deduction, net_salary;`,
+                [
+                    payroll.employee_id,
+                    payroll.period,
+                    payroll.fortnight,
+                    payroll.base_salary,
+                    payroll.isss,
+                    payroll.afp,
+                    payroll.isr
+                ]
+            );
+
+            insertedPayrolls.push(result.rows[0]);
+        }
+
+        await client.query("COMMIT");
+        return insertedPayrolls;
+    } catch (error) {
+        await client.query("ROLLBACK");
+        throw error;
+    } finally {
+        client.release();
+    }
+}
+
 const list = async ({ employee_id, period } = {}) => {
     const conditions = [];
     const params = [];
@@ -58,5 +106,7 @@ const list = async ({ employee_id, period } = {}) => {
 module.exports = {
     insert,
     list,
-    getSalary
+    getSalary,
+    getEmployee,
+    insertMany
 };

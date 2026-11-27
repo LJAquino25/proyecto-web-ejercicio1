@@ -192,7 +192,9 @@ const getPurchaseOrders = async (db = pool) => {
       p.employee_id,
       p.document_num,
       p.payment_terms,
+      p.status,
       CASE
+        WHEN p.status = 'VOID' THEN 'VOID'
         WHEN p.document_num LIKE 'ORD-%' THEN 'PENDING'
         ELSE 'RECEIVED'
       END AS order_status,
@@ -220,7 +222,7 @@ const getPurchaseOrders = async (db = pool) => {
     LEFT JOIN purchase_detail pd ON p.id = pd.purchase_id
     LEFT JOIN supply sup ON pd.supply_id = sup.id
     LEFT JOIN product prod ON pd.packaged_product_id = prod.id
-    WHERE p.status = 'RECORDED'
+    WHERE p.status IN ('RECORDED', 'VOID')
     GROUP BY p.id, s.name
     ORDER BY p.id DESC
   `);

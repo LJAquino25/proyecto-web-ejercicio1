@@ -329,7 +329,70 @@ const listPackagedInventory = async (branchId) => {
   return await inventoryRecipesRepo.getPackagedInventoryByBranch(branchId);
 };
 
+// Edita nombre y precio; en empaquetados, además proveedor y costo.
+// El tipo de producto no se puede cambiar.
+const updateCatalog = async ({ id, name, price, supplierId, unitCost }) => {
+  const cleanName = String(name || "").trim();
+  const isMoney = (value) => Number.isFinite(value) && value >= 0.01;
+
+  if (!Number.isInteger(id) || id <= 0) {
+    throw createHttpError(400, "ID de producto no válido");
+  }
+  if (!cleanName || cleanName.length > 100 || !isMoney(price)) {
+    throw createHttpError(400, "Ingresá un nombre (máx. 100) y un precio mayor a cero");
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    const current = await inventoryRecipesRepo.lockProductById(id, client);
+    if (!current) {
+      throw createHttpError(404, "Producto no encontrado");
+    }
+
+    const sameName = await inventoryRecipesRepo.findProductByName(cleanName, client);
+    if (sameName && sameName.id !== id) {
+      throw createHttpError(409, "Ya existe un producto con ese nombre");
+    }
+
+    if (current.product_type === "PACKAGED") {
+      if (!Number.isInteger(supplierId) || supplierId <= 0 || !isMoney(unitCost)) {
+        throw createHttpError(400, "Seleccioná el proveedor y un costo mayor a cero");
+      }
+      await inventoryRecipesRepo.updatePackagedProduct(
+        { productId: id, supplierId, unitCost },
+        client,
+      );
+    }
+
+    const product = await inventoryRecipesRepo.updateProduct(
+      { id, name: cleanName, price },
+      client,
+    );
+    await inventoryRecipesRepo.renameRecipe(
+      { productId: id, oldName: current.name, newName: cleanName },
+      client,
+    );
+
+    await client.query("COMMIT");
+    return product;
+  } catch (error) {
+    await client.query("ROLLBACK");
+    if (error.code === "23503") {
+      throw createHttpError(400, "El proveedor no existe");
+    }
+    if (error.code === "22003") {
+      throw createHttpError(400, "El precio o el costo es demasiado grande");
+    }
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
 module.exports = {
+  updateCatalog,
   addProductToInventory,
   listProducts,
   listSupplies,

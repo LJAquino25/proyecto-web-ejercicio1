@@ -177,7 +177,25 @@ const listPackagedInventory = async (req, res) => {
   }
 };
 
+const editCatalog = async (req, res) => {
+  try {
+    const product = await inventoryRecipesService.updateCatalog({
+      id: Number(req.params.id),
+      name: req.body.name,
+      price: Number(req.body.price),
+      supplierId: Number(req.body.supplierId),
+      unitCost: Number(req.body.unitCost),
+    });
+    return res.status(200).json({ message: "Producto actualizado", product });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({
+      message: error.statusCode ? error.message : "Error al actualizar el producto",
+    });
+  }
+};
+
 module.exports = {
+  editCatalog,
   addProducts,
   listProducts,
   listSupplies,

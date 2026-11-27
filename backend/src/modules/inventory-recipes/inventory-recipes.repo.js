@@ -204,7 +204,44 @@ const getPackagedInventoryByBranch = async (branchId, db = pool) => {
   return result.rows;
 };
 
+// Bloquea el producto mientras se edita
+const lockProductById = async (id, db) => {
+  const result = await db.query(
+    "SELECT id, name, price, product_type FROM product WHERE id = $1 FOR UPDATE",
+    [id],
+  );
+  return result.rows[0] || null;
+};
+
+const updateProduct = async ({ id, name, price }, db) => {
+  const result = await db.query(
+    `UPDATE product SET name = $2, price = $3 WHERE id = $1
+     RETURNING id, name, price, product_type`,
+    [id, name, price],
+  );
+  return result.rows[0];
+};
+
+const updatePackagedProduct = async ({ productId, supplierId, unitCost }, db) => {
+  await db.query(
+    "UPDATE packaged_product SET supplier_id = $2, unit_cost = $3 WHERE product_id = $1",
+    [productId, supplierId, unitCost],
+  );
+};
+
+// La receta solo cambia de nombre si se llamaba igual que el producto
+const renameRecipe = async ({ productId, oldName, newName }, db) => {
+  await db.query(
+    "UPDATE recipe SET name = $3 WHERE product_id = $1 AND name = $2",
+    [productId, oldName, newName],
+  );
+};
+
 module.exports = {
+  lockProductById,
+  updateProduct,
+  updatePackagedProduct,
+  renameRecipe,
   findSupplyByName,
   createSupply,
   upsertBranchSupplyInventory,

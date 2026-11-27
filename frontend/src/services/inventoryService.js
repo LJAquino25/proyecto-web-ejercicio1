@@ -91,3 +91,30 @@ export async function getSuppliers() {
   }
   return data.suppliers
 }
+
+export async function getPackagedProducts() {
+  const data = await apiRequest('/inventory/catalog/details')
+
+  if (!Array.isArray(data)) {
+    throw new Error('La respuesta del catálogo no es válida.')
+  }
+
+  return data
+    .filter(product => product.product_type === 'PACKAGED')
+    .map(product => ({
+      ...product,
+      unit: 'UNIT'
+    }))
+}
+
+export async function getBranchPackagedInventory(branchId) {
+  const data = await apiRequest(
+    `/inventory/packaged-inventory?branch_id=${encodeURIComponent(branchId)}`
+  )
+
+  if (!Array.isArray(data)) {
+    throw new Error('La respuesta del inventario no es válida.')
+  }
+
+  return data
+}

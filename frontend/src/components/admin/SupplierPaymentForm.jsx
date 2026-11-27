@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Modal, ModalBody } from 'reactstrap'
 import {
   Wallet,
@@ -49,9 +49,18 @@ function SupplierPaymentForm({
 }) {
   const [form, setForm] = useState(createInitialForm)
 
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState('')
+  const submitLock = useRef(false)
+
+  const closeForm = () => {
+    if (!submitLock.current) toggle()
+  }
+
   useEffect(() => {
     if (isOpen) {
       setForm(createInitialForm())
+      setSubmitError('')
     }
   }, [isOpen])
 
@@ -117,25 +126,36 @@ function SupplierPaymentForm({
     updateField('amount', balance.toFixed(2))
   }
 
-  const handleSubmit = event => {
+  const handleSubmit = async event => {
     event.preventDefault()
 
-    if (!onSubmit || !isValid) return
+    if (!onSubmit || !isValid || submitLock.current) return
 
-    onSubmit({
-      account_payable_id: Number(
-        form.account_payable_id
-      ),
-      amount: paymentAmount,
-      method: form.method,
-      reference: form.reference.trim() || null
-    })
+    submitLock.current = true
+    setIsSubmitting(true)
+    setSubmitError('')
+
+    try {
+      await onSubmit({
+        account_payable_id: Number(form.account_payable_id),
+        amount: paymentAmount,
+        method: form.method,
+        reference: form.reference.trim() || null
+      })
+    } catch (error) {
+      setSubmitError(error.message || 'No se pudo registrar el pago.')
+    } finally {
+      submitLock.current = false
+      setIsSubmitting(false)
+    }
   }
 
   return (
     <Modal
       isOpen={isOpen}
-      toggle={toggle}
+      toggle={closeForm}
+      backdrop={isSubmitting ? 'static' : true}
+      keyboard={!isSubmitting}
       centered
       scrollable
       size="lg"
@@ -158,7 +178,8 @@ function SupplierPaymentForm({
           <button
             type="button"
             className="admin-form-close"
-            onClick={toggle}
+            onClick={closeForm}
+            disabled={isSubmitting}
             aria-label="Cerrar"
           >
             <X size={24} />
@@ -171,6 +192,7 @@ function SupplierPaymentForm({
         </p>
 
         <form onSubmit={handleSubmit}>
+          <fieldset disabled={isSubmitting} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
           <div className="admin-form-grid">
             <label className="admin-form-field wide">
               <span>Cuenta por pagar</span>
@@ -402,11 +424,16 @@ function SupplierPaymentForm({
             </div>
           )}
 
+          {submitError && (
+            <p className="supplier-payment-error" role="alert">{submitError}</p>
+          )}
+
           <div className="admin-form-footer">
             <button
               type="button"
               className="admin-form-cancel"
-              onClick={toggle}
+              onClick={closeForm}
+            disabled={isSubmitting}
             >
               Cancelar
             </button>
@@ -414,7 +441,7 @@ function SupplierPaymentForm({
             <button
               type="submit"
               className="admin-form-submit"
-              disabled={!onSubmit || !isValid}
+              disabled={!onSubmit || !isValid || isSubmitting}
               title={
                 !onSubmit
                   ? 'Pendiente de conexión'
@@ -422,9 +449,10 @@ function SupplierPaymentForm({
               }
             >
               <Check size={18} />
-              Registrar pago
+              {isSubmitting ? 'Registrando pago...' : 'Registrar pago'}
             </button>
           </div>
+          </fieldset>
         </form>
       </ModalBody>
     </Modal>

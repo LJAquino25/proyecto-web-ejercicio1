@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Modal, ModalBody } from 'reactstrap'
 import {
   ClipboardList,
@@ -13,26 +13,11 @@ import '../../styles/RecipeForm.css'
 import '../../styles/OrderForm.css'
 import '../../styles/PurchaseOrderForm.css'
 
-const SUPPLIERS = [
-  { id: 1, name: 'Distribuidora La Central' },
-  { id: 2, name: 'Lácteos del Valle' },
-  { id: 3, name: 'Café de Occidente' }
-]
+import { getSuppliers } from '../../services/purchasesService'
+import { getBranches } from '../../services/catalogService'
+import { getInventorySupplies, getPackagedProducts } from '../../services/inventoryService'
 
-const BRANCHES = [
-  { id: 1, name: 'Centro Histórico' },
-  { id: 2, name: 'Escalón' },
-  { id: 3, name: 'Santa Elena' }
-]
-
-const PRODUCTS = [
-  { id: 1, name: 'Harina de maíz', unit: 'kg' },
-  { id: 2, name: 'Queso', unit: 'kg' },
-  { id: 3, name: 'Crema', unit: 'L' },
-  { id: 4, name: 'Café molido', unit: 'kg' },
-  { id: 5, name: 'Aceite', unit: 'L' },
-  { id: 6, name: 'Azúcar', unit: 'kg' }
-]
+const roundMoney = value => Number(value.toFixed(2))
 
 const createItem = id => ({
   id,
@@ -57,8 +42,57 @@ function PurchaseOrderForm({ isOpen, toggle, onSubmit }) {
   const [items, setItems] = useState([createItem(1)])
 
   const nextId = useRef(2)
+  const submitLock = useRef(false)
+  const [suppliers, setSuppliers] = useState([])
+  const [branches, setBranches] = useState([])
+  const [supplies, setSupplies] = useState([])
+  const [packagedProducts, setPackagedProducts] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
+  const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (!isOpen) return
+    let active = true
+    setLoading(true)
+    setLoadError('')
+    setError('')
+    setSupplierId('')
+    setBranchId('')
+    setDate(getToday())
+    setItems([createItem(1)])
+    nextId.current = 2
+    Promise.all([
+  getSuppliers(),
+  getBranches(),
+  getInventorySupplies(), getPackagedProducts()
+])
+  .then(([supplierData, branchData, supplyData, packagedData]) => {
+    if (!active) return
+    setSuppliers(supplierData)
+    setBranches(branchData)
+    setSupplies(supplyData)
+    setPackagedProducts(packagedData)
+  })
+      .catch(err => {
+        if (active) setLoadError(err.message || 'No se pudieron cargar los datos.')
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+    return () => { active = false }
+  }, [isOpen])
+
+  const products = supplierId ? [
+    ...supplies.filter(supply => String(supply.supplier_id) === supplierId)
+      .map(supply => ({ ...supply, key: `SUPPLY:${supply.id}`, type: 'SUPPLY' })),
+    ...packagedProducts.filter(product => String(product.supplier_id) === supplierId)
+      .map(product => ({ ...product, key: `PACKAGED:${product.id}`, type: 'PACKAGED' }))
+  ] : []
 
   const addItem = () => {
+    if (items.length >= products.length) return
     const id = nextId.current++
 
     setItems(previous => [
@@ -79,65 +113,72 @@ function PurchaseOrderForm({ isOpen, toggle, onSubmit }) {
     setItems(previous =>
       previous.map(item =>
         item.id === id
-          ? { ...item, [field]: value }
+          ? field === 'product_id'
+            ? { ...item, product_id: value, quantity: '', unit_cost: String(products.find(product => product.key === value)?.unit_cost ?? '') }
+            : { ...item, [field]: value }
           : item
       )
     )
   }
 
-  const getProduct = id =>
-    PRODUCTS.find(product => product.id === Number(id))
+  const getProduct = key => products.find(product => product.key === key)
 
-  const getItemTotal = item =>
-    Math.round(
-      Number(item.quantity) * Number(item.unit_cost) * 100
-    ) / 100
+  const getItemTotal = item => roundMoney(Number(item.quantity) * Number(item.unit_cost))
+  const subtotal = roundMoney(items.reduce((sum, item) => sum + getItemTotal(item), 0))
+  const tax = roundMoney(subtotal * 0.13)
+  const total = roundMoney(subtotal + tax)
 
-  const total = items.reduce(
-    (sum, item) => sum + getItemTotal(item),
-    0
-  )
-
-  const isValid =
-    supplierId !== '' &&
-    branchId !== '' &&
-    date !== '' &&
-    items.every(item =>
-      item.product_id !== '' &&
-      Number(item.quantity) > 0 &&
-      Number(item.unit_cost) > 0
-    )
+  const isValid = !loading && !loadError &&
+    suppliers.some(supplier => String(supplier.id) === supplierId) &&
+    branches.some(branch => String(branch.id) === branchId) &&
+    date >= getToday() &&
+    items.every(item => {
+      const product = getProduct(item.product_id)
+      const quantity = Number(item.quantity)
+      const cost = Number(item.unit_cost)
+      return product && Number.isFinite(quantity) && quantity > 0 &&
+        (product.unit !== 'UNIT' || Number.isInteger(quantity)) &&
+        item.unit_cost !== '' && Number.isFinite(cost) && cost >= 0
+    })
 
   const handleClose = () => {
-    setSupplierId('')
-    setBranchId('')
-    setDate(getToday())
-    setItems([createItem(1)])
-    nextId.current = 2
-    toggle()
+    if (!submitLock.current) toggle()
   }
 
-  const handleSubmit = event => {
+  const handleSubmit = async event => {
     event.preventDefault()
-
-    if (!onSubmit || !isValid) return
-
-    onSubmit({
-      supplier_id: Number(supplierId),
-      branch_id: Number(branchId),
-      date,
-      items: items.map(item => ({
-        product_id: Number(item.product_id),
-        quantity: Number(item.quantity),
-        unit_cost: Number(item.unit_cost)
-      }))
-    })
+    if (!onSubmit || !isValid || submitLock.current) return
+    submitLock.current = true
+    setSubmitting(true)
+    setError('')
+    try {
+      await onSubmit({
+        supplier_id: Number(supplierId),
+        branch_id: Number(branchId),
+        expected_date: date,
+        items: items.map(item => {
+          const product = getProduct(item.product_id)
+          return {
+            [product.type === 'SUPPLY' ? 'supply_id' : 'packaged_product_id']: Number(product.id),
+            quantity: Number(item.quantity),
+            unit_cost: Number(item.unit_cost)
+          }
+        })
+      })
+    } catch (err) {
+      setError(err.message || 'No se pudo registrar la orden.')
+    } finally {
+      submitLock.current = false
+      setSubmitting(false)
+    }
   }
 
   return (
     <Modal
       isOpen={isOpen}
       toggle={handleClose}
+      backdrop={submitting ? "static" : true}
+      keyboard={!submitting}
       centered
       scrollable
       size="lg"
@@ -168,11 +209,15 @@ function PurchaseOrderForm({ isOpen, toggle, onSubmit }) {
         </div>
 
         <p className="admin-form-description">
-          Seleccioná el proveedor y los insumos que
+          Seleccioná el proveedor y los artículos que
           necesitás solicitar.
         </p>
 
         <form onSubmit={handleSubmit}>
+          {loading && <p role="status">Cargando datos...</p>}
+          {loadError && <p role="alert">{loadError}</p>}
+          {error && <p role="alert">{error}</p>}
+          <fieldset disabled={loading || Boolean(loadError) || submitting} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
           <div className="admin-form-grid">
             <label className="admin-form-field">
               <span>Proveedor</span>
@@ -180,7 +225,11 @@ function PurchaseOrderForm({ isOpen, toggle, onSubmit }) {
               <select
                 value={supplierId}
                 onChange={event =>
-                  setSupplierId(event.target.value)
+                  {
+                    setSupplierId(event.target.value)
+                    setItems([createItem(1)])
+                    nextId.current = 2
+                  }
                 }
                 required
               >
@@ -188,7 +237,7 @@ function PurchaseOrderForm({ isOpen, toggle, onSubmit }) {
                   Seleccioná un proveedor
                 </option>
 
-                {SUPPLIERS.map(supplier => (
+                {suppliers.map(supplier => (
                   <option
                     key={supplier.id}
                     value={supplier.id}
@@ -213,7 +262,7 @@ function PurchaseOrderForm({ isOpen, toggle, onSubmit }) {
                   Seleccioná una sucursal
                 </option>
 
-                {BRANCHES.map(branch => (
+                {branches.map(branch => (
                   <option
                     key={branch.id}
                     value={branch.id}
@@ -225,10 +274,11 @@ function PurchaseOrderForm({ isOpen, toggle, onSubmit }) {
             </label>
 
             <label className="admin-form-field wide">
-              <span>Fecha de solicitud</span>
+              <span>Fecha esperada de entrega</span>
 
               <input
                 type="date"
+                min={getToday()}
                 value={date}
                 onChange={event =>
                   setDate(event.target.value)
@@ -239,8 +289,8 @@ function PurchaseOrderForm({ isOpen, toggle, onSubmit }) {
           </div>
 
           <div className="recipe-form-section-heading">
-            <h3>Insumos de la compra</h3>
-            <span>{items.length} insumos</span>
+            <h3>Artículos de la compra</h3>
+            <span>{items.length} artículos</span>
           </div>
 
           <div className="recipe-form-ingredients">
@@ -253,14 +303,14 @@ function PurchaseOrderForm({ isOpen, toggle, onSubmit }) {
                   key={item.id}
                 >
                   <div className="recipe-form-ingredient-heading">
-                    <strong>Insumo {index + 1}</strong>
+                    <strong>Artículo {index + 1}</strong>
 
                     <button
                       type="button"
                       className="recipe-form-remove"
                       onClick={() => removeItem(item.id)}
                       disabled={items.length === 1}
-                      aria-label="Eliminar insumo"
+                      aria-label="Eliminar artículo"
                     >
                       <Trash2 size={17} />
                     </button>
@@ -268,7 +318,7 @@ function PurchaseOrderForm({ isOpen, toggle, onSubmit }) {
 
                   <div className="purchase-order-item-grid">
                     <label className="admin-form-field purchase-order-product">
-                      <span>Insumo</span>
+                      <span>Artículo</span>
 
                       <select
                         value={item.product_id}
@@ -282,20 +332,20 @@ function PurchaseOrderForm({ isOpen, toggle, onSubmit }) {
                         required
                       >
                         <option value="">
-                          Seleccioná un insumo
+                          Seleccioná un artículo
                         </option>
 
-                        {PRODUCTS.map(product => (
+                        {products.map(product => (
                           <option
-                            key={product.id}
-                            value={product.id}
+                            key={product.key}
+                            value={product.key}
                             disabled={items.some(
                               other =>
                                 other.id !== item.id &&
-                                Number(other.product_id) === product.id
+                                other.product_id === product.key
                             )}
                           >
-                            {product.name}
+                            {product.name} ({product.type === 'SUPPLY' ? 'Insumo' : 'Empaquetado'})
                           </option>
                         ))}
                       </select>
@@ -308,8 +358,8 @@ function PurchaseOrderForm({ isOpen, toggle, onSubmit }) {
 
                       <input
                         type="number"
-                        min="0.001"
-                        step="0.001"
+                        min={product?.unit === 'UNIT' ? 1 : 0.001}
+                        step={product?.unit === 'UNIT' ? 1 : 0.001}
                         placeholder="0"
                         value={item.quantity}
                         onChange={event =>
@@ -328,7 +378,7 @@ function PurchaseOrderForm({ isOpen, toggle, onSubmit }) {
 
                       <input
                         type="number"
-                        min="0.01"
+                        min="0"
                         step="0.01"
                         placeholder="0.00"
                         value={item.unit_cost}
@@ -360,13 +410,19 @@ function PurchaseOrderForm({ isOpen, toggle, onSubmit }) {
             type="button"
             className="recipe-form-add"
             onClick={addItem}
-            disabled={items.length >= PRODUCTS.length}
+            disabled={items.length >= products.length}
           >
             <Plus size={19} />
-            Agregar insumo
+            Agregar artículo
           </button>
 
+          <p>
+  Únicamente se pueden solicitar insumos y productos empaquetados
+  asociados al proveedor seleccionado.
+</p>
           <div className="order-summary">
+            <div className="purchase-order-total"><span>Subtotal</span><strong>${subtotal.toFixed(2)}</strong></div>
+            <div className="purchase-order-total"><span>IVA (13 %)</span><strong>${tax.toFixed(2)}</strong></div>
             <div className="purchase-order-total">
               <span>Total de la orden</span>
 
@@ -374,6 +430,7 @@ function PurchaseOrderForm({ isOpen, toggle, onSubmit }) {
             </div>
           </div>
 
+          </fieldset>
           <div className="admin-form-footer">
             <button
               type="button"
@@ -386,11 +443,11 @@ function PurchaseOrderForm({ isOpen, toggle, onSubmit }) {
             <button
               type="submit"
               className="admin-form-submit"
-              disabled={!onSubmit || !isValid}
+              disabled={!onSubmit || !isValid || submitting}
               title={!onSubmit ? 'Pendiente de conexión' : undefined}
             >
               <Check size={18} />
-              Crear orden
+              {submitting ? 'Registrando...' : 'Crear orden'}
             </button>
           </div>
         </form>

@@ -10,26 +10,19 @@ import { Link } from 'react-router-dom'
 
 import {
   ArrowLeft,
-  Plus,
   Package,
   ShoppingBag,
   CheckCircle2,
   TriangleAlert,
-  Search
+  Search,
+  Truck
 } from 'lucide-react'
 
 import '../../styles/InventoryPage.css'
 import '../../styles/SalesPage.css'
 
-import ProductForm from '../../components/admin/ProductForm'
-
 import { getBranches } from '../../services/catalogService'
-
-import {
-  addInventorySupply,
-  getBranchInventory,
-  getSuppliers
-} from '../../services/inventoryService'
+import { getBranchInventory, getBranchPackagedInventory } from '../../services/inventoryService'
 
 const UNIT_LABELS = {
   G: 'Gramos',
@@ -51,21 +44,17 @@ function InventoryPage() {
   const [stockFilter, setStockFilter] = useState('ALL')
 
   const [branches, setBranches] = useState([])
-  const [suppliers, setSuppliers] = useState([])
   const [products, setProducts] = useState([])
 
   const [branchError, setBranchError] = useState('')
-  const [supplierError, setSupplierError] = useState('')
   const [loadError, setLoadError] = useState('')
-
   const [isLoading, setIsLoading] = useState(false)
-  const [isFormOpen, setIsFormOpen] = useState(false)
 
   const inventoryRequestId = useRef(0)
 
   const isSupplies = activeTab === 'supplies'
 
-  const loadInventory = useCallback(async selectedBranchId => {
+  const loadInventory = useCallback(async (selectedBranchId, suppliesTab) => {
     const requestId = ++inventoryRequestId.current
 
     setIsLoading(true)
@@ -73,7 +62,9 @@ function InventoryPage() {
     setProducts([])
 
     try {
-      const inventory = await getBranchInventory(selectedBranchId)
+      const inventory = await (suppliesTab
+        ? getBranchInventory(selectedBranchId)
+        : getBranchPackagedInventory(selectedBranchId))
 
       if (requestId === inventoryRequestId.current) {
         setProducts(inventory)
@@ -116,21 +107,6 @@ function InventoryPage() {
         }
       })
 
-    getSuppliers()
-      .then(data => {
-        if (active) {
-          setSuppliers(data)
-        }
-      })
-      .catch(error => {
-        if (active) {
-          setSupplierError(
-            error.message ||
-            'No se pudieron cargar los proveedores.'
-          )
-        }
-      })
-
     return () => {
       active = false
     }
@@ -138,37 +114,23 @@ function InventoryPage() {
 
   useEffect(() => {
     if (branchId) {
-      loadInventory(branchId)
+      loadInventory(branchId, isSupplies)
     } else {
       inventoryRequestId.current += 1
       setProducts([])
       setIsLoading(false)
       setLoadError('')
     }
-  }, [branchId, loadInventory])
 
-  const toggleForm = () => {
-    setIsFormOpen(previous => !previous)
-  }
+    return () => {
+      inventoryRequestId.current += 1
+    }
+  }, [branchId, isSupplies, loadInventory])
 
   const changeTab = tab => {
     setActiveTab(tab)
     setSearchTerm('')
     setStockFilter('ALL')
-  }
-
-  const handleAddSupply = async form => {
-    await addInventorySupply(form)
-
-    setIsFormOpen(false)
-
-    const newBranchId = String(form.branch_id)
-
-    if (newBranchId !== branchId) {
-      setBranchId(newBranchId)
-    } else {
-      await loadInventory(newBranchId)
-    }
   }
 
   const lowStock = products.filter(
@@ -233,22 +195,18 @@ function InventoryPage() {
           <h1>Existencias</h1>
 
           <p>
-            Consultá y administrá las existencias
+            Consultá y controlá las existencias
             de cada sucursal.
           </p>
         </div>
 
-        {isSupplies && (
-          <button
-            type="button"
-            className="inventory-primary-button"
-            onClick={toggleForm}
-            disabled={!branches.length}
-          >
-            <Plus size={20} />
-            Agregar insumo
-          </button>
-        )}
+        <Link
+          to="/staff/purchases"
+          className="inventory-primary-button inventory-purchases-link"
+        >
+          <Truck size={20} />
+          Ir a compras
+        </Link>
       </div>
 
       {branchError && (
@@ -272,7 +230,7 @@ function InventoryPage() {
 
               <div>
                 <strong>
-                  {!isSupplies || isLoading || loadError || !branchId
+                  {isLoading || loadError || !branchId
                     ? '—'
                     : stat.value}
                 </strong>
@@ -359,7 +317,7 @@ function InventoryPage() {
                 onChange={event =>
                   setSearchTerm(event.target.value)
                 }
-                disabled={!isSupplies}
+                disabled={!branchId || isLoading || Boolean(loadError)}
               />
             </div>
           </label>
@@ -372,7 +330,7 @@ function InventoryPage() {
               onChange={event =>
                 setStockFilter(event.target.value)
               }
-              disabled={!isSupplies}
+              disabled={!branchId || isLoading || Boolean(loadError)}
             >
               <option value="ALL">Todos</option>
               <option value="AVAILABLE">Disponible</option>
@@ -381,7 +339,7 @@ function InventoryPage() {
           </label>
         </div>
 
-        {isSupplies && loadError && (
+        {loadError && (
           <p className="inventory-empty" role="alert">
             {loadError}
           </p>
@@ -402,7 +360,7 @@ function InventoryPage() {
             </thead>
 
             <tbody>
-              {isSupplies && filteredProducts.map(product => {
+              {!isLoading && !loadError && filteredProducts.map(product => {
                 const isLowStock =
                   Number(product.quantity) <=
                   Number(product.min_stock)
@@ -448,7 +406,7 @@ function InventoryPage() {
                 )
               })}
 
-              {isSupplies && isLoading && (
+              {isLoading && (
                 <tr>
                   <td colSpan={5} className="inventory-empty">
                     Cargando existencias...
@@ -456,47 +414,29 @@ function InventoryPage() {
                 </tr>
               )}
 
-              {isSupplies &&
-                !isLoading &&
+              {!isLoading &&
                 !loadError &&
                 filteredProducts.length === 0 && (
                   <tr>
                     <td colSpan={5} className="inventory-empty">
                       {branchId
-                        ? 'No se encontraron insumos para esta sucursal.'
+                        ? (isSupplies ? 'No se encontraron insumos.' : 'No se encontraron productos empaquetados.')
                         : 'Seleccioná una sucursal.'}
                     </td>
                   </tr>
                 )}
-
-              {!isSupplies && (
-                <tr>
-                  <td colSpan={5} className="inventory-empty">
-                    La consulta de existencias de productos
-                    empaquetados está pendiente de conexión.
-                  </td>
-                </tr>
-              )}
             </tbody>
           </table>
         </div>
 
         <div className="inventory-panel-footer">
-          {isSupplies
-            ? `Mostrando ${filteredProducts.length} de ${products.length} insumos`
-            : 'Consulta de existencias pendiente'}
+          {isLoading
+            ? 'Cargando inventario...'
+            : loadError
+              ? 'Inventario no disponible'
+              : `Mostrando ${filteredProducts.length} de ${products.length} ${isSupplies ? 'insumos' : 'productos'}`}
         </div>
       </section>
-
-      <ProductForm
-        isOpen={isFormOpen}
-        toggle={toggleForm}
-        onSubmit={handleAddSupply}
-        branches={branches}
-        suppliers={suppliers}
-        suppliersError={supplierError}
-        initialBranchId={branchId}
-      />
     </section>
   )
 }

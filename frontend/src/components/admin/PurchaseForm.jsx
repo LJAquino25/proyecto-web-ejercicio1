@@ -11,111 +11,16 @@ import {
   Info
 } from 'lucide-react'
 
+import { getSuppliers } from '../../services/purchasesService'
+import { getBranches } from '../../services/catalogService'
+import { getInventorySupplies, getPackagedProducts } from '../../services/inventoryService'
+
 import '../../styles/AdminForm.css'
 import '../../styles/RecipeForm.css'
 import '../../styles/OrderForm.css'
 import '../../styles/PurchaseOrderForm.css'
 import '../../styles/PurchaseInvoiceForm.css'
 import '../../styles/PurchaseForm.css'
-
-const MOCK_SUPPLIERS = [
-  { id: 1, name: 'Especias y Condimentos El Comal' },
-  { id: 2, name: 'Lácteos del Valle' },
-  { id: 3, name: 'Café de Occidente' },
-  { id: 4, name: 'Distribuidora La Central' }
-]
-
-const MOCK_BRANCHES = [
-  { id: 1, name: 'Centro Histórico' },
-  { id: 2, name: 'Escalón' },
-  { id: 3, name: 'Santa Tecla' }
-]
-
-const MOCK_SUPPLIES = [
-  {
-    id: 1,
-    name: 'Harina de maíz',
-    unit: 'G',
-    supplier_id: 4
-  },
-  {
-    id: 2,
-    name: 'Queso',
-    unit: 'G',
-    supplier_id: 2
-  },
-  {
-    id: 3,
-    name: 'Café molido',
-    unit: 'G',
-    supplier_id: 3
-  },
-  {
-    id: 4,
-    name: 'Aceite',
-    unit: 'ML',
-    supplier_id: 4
-  },
-  {
-    id: 5,
-    name: 'Azúcar',
-    unit: 'G',
-    supplier_id: 4
-  },
-  {
-    id: 6,
-    name: 'Frijoles',
-    unit: 'G',
-    supplier_id: 4
-  },
-  {
-    id: 7,
-    name: 'Chicharrón',
-    unit: 'G',
-    supplier_id: 4
-  },
-  {
-    id: 8,
-    name: 'Agua',
-    unit: 'ML',
-    supplier_id: 4
-  },
-  {
-    id: 9,
-    name: 'Harina de arroz',
-    unit: 'G',
-    supplier_id: 4
-  },
-  {
-    id: 10,
-    name: 'Pollo',
-    unit: 'G',
-    supplier_id: 4
-  },
-  {
-    id: 11,
-    name: 'Pimienta',
-    unit: 'G',
-    supplier_id: 1
-  }
-]
-
-const MOCK_PACKAGED_PRODUCTS = [
-  {
-    id: 5,
-    name: 'Agua embotellada',
-    unit: 'UNIT',
-    supplier_id: 4,
-    unit_cost: 0.35
-  },
-  {
-    id: 6,
-    name: 'Gaseosa',
-    unit: 'UNIT',
-    supplier_id: 4,
-    unit_cost: 0.55
-  }
-]
 
 const UNIT_LABELS = {
   G: 'Gramos',
@@ -175,38 +80,53 @@ const formatMoney = value =>
 function PurchaseForm({
   isOpen,
   toggle,
-  onSubmit,
-  suppliers = MOCK_SUPPLIERS,
-  branches = MOCK_BRANCHES,
-  supplies = MOCK_SUPPLIES,
-  packagedProducts = MOCK_PACKAGED_PRODUCTS
+  onSubmit
 }) {
   const [form, setForm] = useState(createInitialForm)
   const [items, setItems] = useState([createItem(1)])
-  const [applyTax, setApplyTax] = useState(true)
+  const [suppliers, setSuppliers] = useState([])
+  const [branches, setBranches] = useState([])
+  const [supplies, setSupplies] = useState([])
+  const [packagedProducts, setPackagedProducts] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
+  const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
   const nextId = useRef(2)
+  const submitLock = useRef(false)
 
   useEffect(() => {
-    if (isOpen) {
-      setForm(createInitialForm())
-      setItems([createItem(1)])
-      setApplyTax(true)
-      nextId.current = 2
-    }
+    if (!isOpen) return
+    let active = true
+    setForm(createInitialForm())
+    setItems([createItem(1)])
+    nextId.current = 2
+    setError('')
+    setLoadError('')
+    setLoading(true)
+    Promise.all([getSuppliers(), getBranches(), getInventorySupplies(), getPackagedProducts()])
+      .then(([supplierData, branchData, supplyData, packagedData]) => {
+        if (!active) return
+        setSuppliers(supplierData)
+        setBranches(branchData)
+        setSupplies(supplyData)
+        setPackagedProducts(packagedData)
+      })
+      .catch(err => { if (active) setLoadError(err.message || 'No se pudieron cargar los datos.') })
+      .finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
   }, [isOpen])
 
-  const availableSupplies = supplies.filter(
+  const availableSupplies = form.supplier_id ? supplies.filter(
     supply =>
       Number(supply.supplier_id) ===
       Number(form.supplier_id)
-  )
+  ) : []
 
-  const availablePackagedProducts = packagedProducts.filter(
-    product =>
-      Number(product.supplier_id) ===
-      Number(form.supplier_id)
-  )
+  const availablePackagedProducts = form.supplier_id
+    ? packagedProducts.filter(product => String(product.supplier_id) === form.supplier_id)
+    : []
 
   const availableItemsCount =
     availableSupplies.length +
@@ -308,13 +228,15 @@ function PurchaseForm({
     )
   )
 
-  const tax = applyTax
-    ? roundMoney(subtotal * 0.13)
-    : 0
+  const tax = roundMoney(subtotal * 0.13)
 
   const total = roundMoney(subtotal + tax)
 
   const isValid =
+    !loading && !loadError &&
+    form.document_num.trim() !== '' &&
+    form.document_num.trim().length <= 60 &&
+    !form.document_num.trim().toUpperCase().startsWith('ORD-') &&
     suppliers.some(
       supplier =>
         Number(supplier.id) === Number(form.supplier_id)
@@ -350,15 +272,19 @@ function PurchaseForm({
       )
     )
 
-  const handleSubmit = event => {
+  const handleSubmit = async event => {
     event.preventDefault()
 
-    if (!onSubmit || !isValid) return
+    if (!onSubmit || !isValid || submitLock.current) return
+    submitLock.current = true
+    setSubmitting(true)
+    setError('')
+    try {
 
-    onSubmit({
+    await onSubmit({
       supplier_id: Number(form.supplier_id),
       branch_id: Number(form.branch_id),
-      document_num: form.document_num.trim() || null,
+      document_num: form.document_num.trim(),
       issue_date: form.issue_date,
       payment_terms: form.payment_terms,
       due_date: isCredit ? form.due_date : null,
@@ -379,12 +305,22 @@ function PurchaseForm({
         line_subtotal: getItemTotal(item)
       }))
     })
+    } catch (err) {
+      setError(err.message || 'No se pudo registrar la compra.')
+    } finally {
+      submitLock.current = false
+      setSubmitting(false)
+    }
   }
+
+  const handleClose = () => { if (!submitLock.current) toggle() }
 
   return (
     <Modal
       isOpen={isOpen}
-      toggle={toggle}
+      toggle={handleClose}
+      backdrop={submitting ? 'static' : true}
+      keyboard={!submitting}
       centered
       scrollable
       size="lg"
@@ -407,7 +343,7 @@ function PurchaseForm({
           <button
             type="button"
             className="admin-form-close"
-            onClick={toggle}
+            onClick={handleClose}
             aria-label="Cerrar"
           >
             <X size={24} />
@@ -420,6 +356,10 @@ function PurchaseForm({
         </p>
 
         <form onSubmit={handleSubmit}>
+          {loading && <p role="status">Cargando datos de compra...</p>}
+          {loadError && <p role="alert">{loadError}</p>}
+          {error && <p role="alert">{error}</p>}
+          <fieldset disabled={loading || submitting || Boolean(loadError)} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
           <div className="admin-form-grid">
             <label className="admin-form-field">
               <span>Proveedor</span>
@@ -475,12 +415,13 @@ function PurchaseForm({
             </label>
 
             <label className="admin-form-field">
-              <span>Número de documento (opcional)</span>
+              <span>Número de documento</span>
 
               <input
                 type="text"
                 placeholder="FAC-004"
                 maxLength={60}
+                required
                 value={form.document_num}
                 onChange={event =>
                   updateField(
@@ -590,10 +531,7 @@ function PurchaseForm({
                         <option value="SUPPLY">
                           Insumo
                         </option>
-
-                        <option value="PACKAGED">
-                          Producto empaquetado
-                        </option>
+                        <option value="PACKAGED">Producto empaquetado</option>
                       </select>
                     </label>
 
@@ -681,7 +619,7 @@ function PurchaseForm({
                       <input
                         type="number"
                         min="0"
-                        step="0.000001"
+                        step="0.01"
                         placeholder="0.00"
                         value={item.unit_cost}
                         onChange={event =>
@@ -795,25 +733,6 @@ function PurchaseForm({
             </div>
           )}
 
-          <label className="purchase-tax-option">
-            <input
-              type="checkbox"
-              checked={applyTax}
-              onChange={event =>
-                setApplyTax(event.target.checked)
-              }
-            />
-
-            <div>
-              <strong>Aplicar IVA del 13%</strong>
-
-              <small>
-                Seleccioná esta opción cuando corresponda
-                aplicar el impuesto a la compra.
-              </small>
-            </div>
-          </label>
-
           <div className="order-summary">
             <div className="order-summary-row">
               <span>Subtotal</span>
@@ -821,7 +740,7 @@ function PurchaseForm({
             </div>
 
             <div className="order-summary-row">
-              <span>IVA ({applyTax ? '13%' : '0%'})</span>
+              <span>IVA (13%)</span>
               <strong>{formatMoney(tax)}</strong>
             </div>
 
@@ -841,11 +760,12 @@ function PurchaseForm({
             </div>
           </div>
 
+          </fieldset>
           <div className="admin-form-footer">
             <button
               type="button"
               className="admin-form-cancel"
-              onClick={toggle}
+              onClick={handleClose}
             >
               Cancelar
             </button>
@@ -853,7 +773,7 @@ function PurchaseForm({
             <button
               type="submit"
               className="admin-form-submit"
-              disabled={!onSubmit || !isValid}
+              disabled={!onSubmit || !isValid || submitting}
               title={
                 !onSubmit
                   ? 'Pendiente de conexión'
@@ -861,7 +781,7 @@ function PurchaseForm({
               }
             >
               <Check size={18} />
-              Registrar compra
+              {submitting ? 'Registrando...' : 'Registrar compra'}
             </button>
           </div>
         </form>

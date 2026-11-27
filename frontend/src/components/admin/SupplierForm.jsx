@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Modal, ModalBody } from 'reactstrap'
 import { Truck, X, Check } from 'lucide-react'
 
@@ -9,8 +9,22 @@ const INITIAL_FORM = {
   phone: ''
 }
 
-function SupplierForm({ isOpen, toggle, onSubmit }) {
+function SupplierForm({ isOpen, toggle, onSubmit, supplier = null }) {
   const [form, setForm] = useState(INITIAL_FORM)
+  const [error, setError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const isEditing = Boolean(supplier)
+
+  useEffect(() => {
+    if (isOpen) {
+      setForm({
+        name: supplier?.name || '',
+        phone: supplier?.phone || ''
+      })
+      setError('')
+    }
+  }, [isOpen, supplier])
 
   const handleChange = event => {
     const { name, value } = event.target
@@ -19,22 +33,52 @@ function SupplierForm({ isOpen, toggle, onSubmit }) {
       ...previous,
       [name]: value
     }))
+
+    setError('')
   }
 
   const handleClose = () => {
+    if (isSubmitting) return
+
     setForm({ ...INITIAL_FORM })
+    setError('')
     toggle()
   }
 
-  const handleSubmit = event => {
+  const handleSubmit = async event => {
     event.preventDefault()
 
-    if (!onSubmit || !form.name.trim()) return
+    if (!onSubmit || isSubmitting) return
 
-    onSubmit({
-      name: form.name.trim(),
-      phone: form.phone.trim() || null
-    })
+    if (!form.name.trim()) {
+      setError('Ingresá el nombre del proveedor.')
+      return
+    }
+
+    if (isEditing && supplier.phone && !form.phone.trim()) {
+      setError('Por el momento no se puede eliminar un teléfono registrado.')
+      return
+    }
+
+    setIsSubmitting(true)
+    setError('')
+
+    try {
+      await onSubmit({
+        name: form.name.trim(),
+        phone: form.phone.trim() || null
+      })
+
+      setForm({ ...INITIAL_FORM })
+    } catch (error) {
+      setError(
+        error.status === 409
+          ? 'Ya existe un proveedor con ese nombre.'
+          : error.message || 'No se pudo guardar el proveedor.'
+      )
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -44,6 +88,8 @@ function SupplierForm({ isOpen, toggle, onSubmit }) {
       centered
       scrollable
       className="admin-form-modal"
+      backdrop={isSubmitting ? 'static' : true}
+      keyboard={!isSubmitting}
     >
       <ModalBody className="admin-form-body">
         <div className="admin-form-heading">
@@ -56,13 +102,16 @@ function SupplierForm({ isOpen, toggle, onSubmit }) {
               PROVEEDORES
             </span>
 
-            <h2>Nuevo proveedor</h2>
+            <h2>
+              {isEditing ? 'Editar proveedor' : 'Nuevo proveedor'}
+            </h2>
           </div>
 
           <button
             type="button"
             className="admin-form-close"
             onClick={handleClose}
+            disabled={isSubmitting}
             aria-label="Cerrar"
           >
             <X size={24} />
@@ -70,8 +119,9 @@ function SupplierForm({ isOpen, toggle, onSubmit }) {
         </div>
 
         <p className="admin-form-description">
-          Registrá un nuevo proveedor para el abastecimiento
-          del restaurante.
+          {isEditing
+            ? 'Actualizá la información del proveedor.'
+            : 'Registrá un nuevo proveedor para el abastecimiento del restaurante.'}
         </p>
 
         <form onSubmit={handleSubmit}>
@@ -86,6 +136,7 @@ function SupplierForm({ isOpen, toggle, onSubmit }) {
                 value={form.name}
                 onChange={handleChange}
                 maxLength={100}
+                disabled={isSubmitting}
                 required
               />
             </label>
@@ -100,15 +151,29 @@ function SupplierForm({ isOpen, toggle, onSubmit }) {
                 value={form.phone}
                 onChange={handleChange}
                 maxLength={20}
+                disabled={isSubmitting}
               />
+
+              {isEditing && supplier.phone && (
+                <small>
+                  Podés modificar el teléfono registrado.
+                </small>
+              )}
             </label>
           </div>
+
+          {error && (
+            <div className="alert alert-danger mt-3" role="alert">
+              {error}
+            </div>
+          )}
 
           <div className="admin-form-footer">
             <button
               type="button"
               className="admin-form-cancel"
               onClick={handleClose}
+              disabled={isSubmitting}
             >
               Cancelar
             </button>
@@ -116,11 +181,19 @@ function SupplierForm({ isOpen, toggle, onSubmit }) {
             <button
               type="submit"
               className="admin-form-submit"
-              disabled={!onSubmit}
-              title={!onSubmit ? 'Pendiente de conexión' : undefined}
+              disabled={
+                !onSubmit ||
+                isSubmitting ||
+                !form.name.trim()
+              }
             >
               <Check size={18} />
-              Guardar proveedor
+
+              {isSubmitting
+                ? 'Guardando...'
+                : isEditing
+                  ? 'Guardar cambios'
+                  : 'Guardar proveedor'}
             </button>
           </div>
         </form>

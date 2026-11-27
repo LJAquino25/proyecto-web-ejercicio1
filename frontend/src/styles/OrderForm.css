@@ -1,0 +1,95 @@
+.order-form-item-grid {
+  display: grid;
+  grid-template-columns: 1.8fr 0.7fr 0.8fr;
+  align-items: end;
+  gap: 14px;
+}
+
+.order-item-subtotal {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.order-item-subtotal > span {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.order-item-subtotal strong {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 46px;
+  padding: 10px;
+  background: #f4f1e9;
+  border-radius: var(--radius-sm);
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.order-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 28px;
+  padding: 24px;
+  background: var(--color-yellow);
+  border: 1.5px solid var(--color-text);
+  border-radius: var(--radius-md);
+  box-shadow: 3px 3px 0 var(--color-text);
+}
+
+.order-summary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.order-summary-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(48, 37, 28, 0.35);
+}
+
+.order-summary-total span {
+  font-family: var(--font-heading);
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.order-summary-total strong {
+  font-family: var(--font-heading);
+  font-size: 32px;
+  font-weight: 900;
+}
+
+.recipe-form-add:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 576px) {
+  .order-form-item-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .order-form-item-grid > label:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .order-summary {
+    padding: 18px;
+  }
+
+  .order-summary-total strong {
+    font-size: 26px;
+  }
+}

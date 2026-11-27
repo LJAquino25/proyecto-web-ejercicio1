@@ -1,0 +1,136 @@
+.auth-page {
+  min-height: 100vh;
+  padding: 40px 4%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.auth-card {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  padding: 40px 36px;
+  background: var(--color-white);
+  border: 2px solid var(--color-text);
+  border-radius: var(--radius-lg);
+  box-shadow: 6px 6px 0 var(--color-text);
+}
+
+.auth-sparkle {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  color: var(--color-fuchsia);
+}
+
+.auth-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: var(--color-fuchsia);
+}
+
+.auth-card h1 {
+  font-size: clamp(32px, 4vw, 44px);
+  margin: 12px 0 8px;
+  line-height: 1.05;
+}
+
+.auth-subtitle {
+  margin: 0 0 24px;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--color-text);
+}
+
+.auth-alert {
+  margin-bottom: 18px;
+  padding: 12px 14px;
+  background: var(--color-pink);
+  border: 2px solid var(--color-text);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.auth-field label {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.auth-field input {
+  padding: 12px 14px;
+  background: var(--color-cream);
+  border: 2px solid var(--color-text);
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+  outline: none;
+  transition: var(--transition);
+}
+
+.auth-field input:focus {
+  background: var(--color-white);
+  box-shadow: 3px 3px 0 var(--color-yellow);
+}
+
+.auth-submit {
+  margin-top: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 14px 24px;
+  background: var(--color-yellow);
+  color: var(--color-text);
+  border: 2px solid var(--color-text);
+  border-radius: var(--radius-pill);
+  font-size: 16px;
+  font-weight: 900;
+  box-shadow: 4px 4px 0 var(--color-text);
+  transition: var(--transition);
+}
+
+.auth-submit:hover:not(:disabled) {
+  background: var(--color-pink);
+  transform: translateY(-2px);
+}
+
+.auth-submit:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.auth-footer-text {
+  margin: 22px 0 0;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.auth-footer-text a {
+  color: var(--color-fuchsia);
+  font-weight: 800;
+  text-decoration: underline;
+}
+
+@media (max-width: 576px) {
+  .auth-card {
+    padding: 28px 20px;
+  }
+}

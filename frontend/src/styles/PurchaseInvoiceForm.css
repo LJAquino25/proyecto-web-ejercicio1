@@ -1,0 +1,134 @@
+.purchase-invoice-information {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px;
+  background: #e5e8f1;
+  border: 1px solid var(--color-blue);
+  border-radius: var(--radius-md);
+}
+
+.purchase-invoice-information > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.purchase-invoice-information span {
+  font-size: 13px;
+  font-weight: 700;
+  color: #766b5f;
+}
+
+.purchase-invoice-information strong {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.purchase-invoice-section {
+  margin-top: 28px;
+}
+
+.purchase-invoice-section h3 {
+  font-size: 20px;
+  margin-bottom: 16px;
+}
+
+.purchase-payment-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.purchase-payment-option {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 22px;
+  background: var(--color-white);
+  color: var(--color-text);
+  border: 1.5px solid #d5cec2;
+  border-radius: var(--radius-md);
+  text-align: left;
+  transition: var(--transition);
+}
+
+.purchase-payment-option:hover {
+  border-color: var(--color-text);
+  transform: translateY(-2px);
+}
+
+.purchase-payment-option.selected {
+  background: var(--color-yellow);
+  border-color: var(--color-text);
+  box-shadow: 3px 3px 0 var(--color-text);
+}
+
+.purchase-payment-option strong {
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.purchase-payment-option small {
+  font-size: 13px;
+  color: #766b5f;
+}
+
+.purchase-payment-indicator {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: 1.5px solid var(--color-text);
+  border-radius: 50%;
+}
+
+.purchase-payment-option.selected
+.purchase-payment-indicator {
+  background: var(--color-text);
+  color: var(--color-white);
+}
+
+.purchase-credit-section {
+  margin-top: 24px;
+  padding: 22px;
+  background: var(--color-white);
+  border: 1px solid #d5cec2;
+  border-radius: var(--radius-md);
+}
+
+.purchase-credit-section p {
+  margin: 12px 0 0;
+  color: #766b5f;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.admin-form-modal .modal-body {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.admin-form-modal .modal-body::-webkit-scrollbar {
+  display: none;
+}
+
+@media (max-width: 576px) {
+  .purchase-payment-options {
+    grid-template-columns: 1fr;
+  }
+
+  .purchase-invoice-information > div {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

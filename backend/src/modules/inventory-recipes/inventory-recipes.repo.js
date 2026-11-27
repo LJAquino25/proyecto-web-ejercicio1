@@ -171,6 +171,39 @@ const createPackagedProduct = async (
   return result.rows[0];
 };
 
+const getProductsWithSupplierInfo = async (db = pool) => {
+  const result = await db.query(`
+    SELECT 
+      p.id,
+      p.name,
+      p.price,
+      p.product_type,
+      pp.supplier_id,
+      pp.unit_cost
+    FROM product p
+    LEFT JOIN packaged_product pp ON p.id = pp.product_id
+    ORDER BY p.id ASC
+  `);
+  return result.rows;
+};
+
+const getPackagedInventoryByBranch = async (branchId, db = pool) => {
+  const result = await db.query(`
+    SELECT
+      p.id,
+      p.name,
+      bpi.stock AS quantity,
+      bpi.min_stock,
+      'UNIT' AS unit
+    FROM branch_packaged_inventory bpi
+    JOIN product p ON p.id = bpi.product_id
+    WHERE bpi.branch_id = $1
+    ORDER BY p.name ASC
+  `, [branchId]);
+
+  return result.rows;
+};
+
 module.exports = {
   findSupplyByName,
   createSupply,
@@ -189,4 +222,6 @@ module.exports = {
   findProductByName,
   createProduct,
   createPackagedProduct,
+  getProductsWithSupplierInfo,
+  getPackagedInventoryByBranch,
 };

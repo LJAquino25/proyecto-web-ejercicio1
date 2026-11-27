@@ -146,6 +146,37 @@ const addCatalog = async (req, res) => {
   }
 };
 
+const listCatalogDetails = async (req, res) => {
+  try {
+    const products = await inventoryRecipesService.listCatalogDetails();
+    return res.status(200).json(products);
+  } catch (error) {
+    return res.status(500).json({
+      message: "Error getting catalog details",
+    });
+  }
+};
+
+const listPackagedInventory = async (req, res) => {
+  try {
+    const branchId = Number(req.query.branch_id);
+
+    if (!Number.isInteger(branchId) || branchId <= 0) {
+      return res.status(400).json({
+        message: "Invalid branch ID",
+      });
+    }
+
+    const products = await inventoryRecipesService.listPackagedInventory(branchId);
+
+    return res.status(200).json(products);
+  } catch (error) {
+    return res.status(500).json({
+      message: "Error getting packaged inventory",
+    });
+  }
+};
+
 module.exports = {
   addProducts,
   listProducts,
@@ -156,4 +187,6 @@ module.exports = {
   alertStock,
   prepareRecipe,
   addCatalog,
+  listCatalogDetails,
+  listPackagedInventory,
 };

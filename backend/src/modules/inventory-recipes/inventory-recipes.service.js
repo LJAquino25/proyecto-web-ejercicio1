@@ -321,6 +321,14 @@ const addCatalog = async ({
   }
 };
 
+const listCatalogDetails = async () => {
+  return await inventoryRecipesRepo.getProductsWithSupplierInfo();
+};
+
+const listPackagedInventory = async (branchId) => {
+  return await inventoryRecipesRepo.getPackagedInventoryByBranch(branchId);
+};
+
 module.exports = {
   addProductToInventory,
   listProducts,
@@ -331,4 +339,6 @@ module.exports = {
   getStockAlerts,
   prepareRecipe,
   addCatalog,
+  listCatalogDetails,
+  listPackagedInventory,
 };

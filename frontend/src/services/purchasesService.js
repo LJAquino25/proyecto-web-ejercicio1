@@ -39,6 +39,35 @@ export async function createPurchaseInvoice(form) {
   })
 }
 
+export async function getExpenses() {
+  const data = await apiRequest('/purchases/expenses')
+
+  if (!Array.isArray(data?.expenses)) {
+    throw new Error('La respuesta de gastos no es válida.')
+  }
+
+  return data.expenses
+}
+
+export async function createExpense({
+  branch_id,
+  category,
+  description,
+  amount,
+  reference
+}) {
+  return apiRequest('/purchases/expenses', {
+    method: 'POST',
+    body: JSON.stringify({
+      branch_id,
+      category,
+      description,
+      amount,
+      reference: reference || null
+    })
+  })
+}
+
 export async function updateSupplier(id, { name, phone }) {
   return apiRequest(`/purchases/supplier/${id}`, {
     method: 'PUT',

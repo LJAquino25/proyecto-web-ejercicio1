@@ -300,7 +300,7 @@ function CatalogPage() {
                         </button>
                       )}
 
-                      <button
+                      {/* <button
                         type="button"
                         className="catalog-action delete"
                         title="Eliminar producto"
@@ -308,19 +308,17 @@ function CatalogPage() {
                         disabled
                       >
                         <Trash2 size={17} />
-                      </button>
+                      </button> */}
 
-                      {product.product_type === 'PACKAGED' && (
-                        <button
-                          type="button"
-                          className="catalog-action view"
-                          title="Ver detalle"
-                          aria-label={`Ver detalle de ${product.name}`}
-                          onClick={() => setSelectedProduct(product)}
-                        >
-                          <Eye size={17} />
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        className="catalog-action view"
+                        title="Ver detalle"
+                        aria-label={`Ver detalle de ${product.name}`}
+                        onClick={() => setSelectedProduct(product)}
+                      >
+                        <Eye size={17} />
+                      </button>
                     </div>
                   </td>
                 </tr>

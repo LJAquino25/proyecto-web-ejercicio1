@@ -39,22 +39,12 @@ function ExpenseDetail({
           value: branchName
         },
         {
-          label: 'Fecha del gasto',
+          label: 'Fecha de registro',
           value: formatDate(expense.date)
         },
         {
           label: 'Monto',
           value: formatMoney(expense.amount)
-        }
-      ]
-    },
-    {
-      title: 'Información adicional',
-      fields: [
-        {
-          label: 'Observaciones',
-          value: expense.notes || 'Sin observaciones',
-          wide: true
         }
       ]
     }

@@ -1,26 +1,16 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Modal, ModalBody } from 'reactstrap'
 import { Receipt, Wallet, X, Check } from 'lucide-react'
 
 import '../../styles/AdminForm.css'
 import '../../styles/ExpenseForm.css'
 
-const getToday = () => {
-  const date = new Date()
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-
-  return `${year}-${month}-${day}`
-}
-
 const createInitialForm = () => ({
   description: '',
   category: '',
   branch_id: '',
-  date: getToday(),
   amount: '',
-  notes: ''
+  reference: ''
 })
 
 function ExpenseForm({
@@ -28,12 +18,23 @@ function ExpenseForm({
   toggle,
   onSubmit,
   branches = [],
-  categories = []
+  categories = [],
+  isSubmitting = false
 }) {
   const [form, setForm] = useState(createInitialForm)
+  const [submitError, setSubmitError] = useState('')
+
+  useEffect(() => {
+    if (isOpen) {
+      setForm(createInitialForm())
+      setSubmitError('')
+    }
+  }, [isOpen])
 
   const handleChange = event => {
     const { name, value } = event.target
+
+    if (name === 'reference' && value.length > 40) return
 
     setForm(previous => ({
       ...previous,
@@ -54,28 +55,35 @@ const isValidAmount =
     form.description.trim() !== '' &&
     form.category !== '' &&
     form.branch_id !== '' &&
-    form.date !== '' &&
-    form.date <= getToday() &&
     isValidAmount
 
   const handleClose = () => {
+    if (isSubmitting) return
     setForm(createInitialForm())
+    setSubmitError('')
     toggle()
   }
 
-  const handleSubmit = event => {
+  const handleSubmit = async event => {
     event.preventDefault()
 
-    if (!onSubmit || !isValid) return
+    if (!onSubmit || !isValid || isSubmitting) return
 
-    onSubmit({
-      description: form.description.trim(),
-      category: form.category,
-      branch_id: Number(form.branch_id),
-      date: form.date,
-      amount,
-      notes: form.notes.trim()
-    })
+    setSubmitError('')
+
+    try {
+      await onSubmit({
+        description: form.description.trim(),
+        category: form.category,
+        branch_id: Number(form.branch_id),
+        amount,
+        reference: form.reference.trim()
+      })
+      setForm(createInitialForm())
+      toggle()
+    } catch (error) {
+      setSubmitError(error.message || 'No se pudo registrar el gasto.')
+    }
   }
 
   return (
@@ -127,6 +135,7 @@ const isValidAmount =
                 placeholder="Ej. Pago de energía eléctrica"
                 value={form.description}
                 onChange={handleChange}
+                maxLength={120}
                 required
               />
             </label>
@@ -180,19 +189,6 @@ const isValidAmount =
             </label>
 
             <label className="admin-form-field">
-              <span>Fecha del gasto</span>
-
-              <input
-                type="date"
-                name="date"
-                max={getToday()}
-                value={form.date}
-                onChange={handleChange}
-                required
-              />
-            </label>
-
-            <label className="admin-form-field">
               <span>Monto ($)</span>
 
               <input
@@ -208,24 +204,34 @@ const isValidAmount =
             </label>
 
             <label className="admin-form-field wide">
-              <span>Observaciones (opcional)</span>
+              <span>Referencia (opcional)</span>
 
-              <textarea
-                name="notes"
-                rows={3}
-                placeholder="Agregá información adicional sobre el gasto..."
-                value={form.notes}
+              <input
+                type="text"
+                name="reference"
+                placeholder="Ej. Número de recibo"
+                value={form.reference}
                 onChange={handleChange}
               />
             </label>
           </div>
 
+          <p className="expense-form-note">
+            La fecha del gasto será la fecha en que se registre.
+          </p>
+
           {form.amount !== '' && !isValidAmount && (
-  <p className="expense-form-error">
-    Ingresá un monto mayor a cero y con un máximo
-    de dos decimales.
-  </p>
-)}
+            <p className="expense-form-error">
+              Ingresá un monto mayor a cero y con un máximo
+              de dos decimales.
+            </p>
+          )}
+
+          {submitError && (
+            <p className="expense-form-error" role="alert">
+              {submitError}
+            </p>
+          )}
 
           <div className="expense-form-summary">
             <div className="expense-form-total">
@@ -250,6 +256,7 @@ const isValidAmount =
               type="button"
               className="admin-form-cancel"
               onClick={handleClose}
+              disabled={isSubmitting}
             >
               Cancelar
             </button>
@@ -257,7 +264,7 @@ const isValidAmount =
             <button
               type="submit"
               className="admin-form-submit"
-              disabled={!onSubmit || !isValid}
+              disabled={!onSubmit || !isValid || isSubmitting}
               title={
                 !onSubmit
                   ? 'Pendiente de conexión'
@@ -265,7 +272,7 @@ const isValidAmount =
               }
             >
               <Check size={18} />
-              Registrar gasto
+              {isSubmitting ? 'Registrando...' : 'Registrar gasto'}
             </button>
           </div>
         </form>

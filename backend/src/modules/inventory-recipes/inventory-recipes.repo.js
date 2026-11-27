@@ -2,8 +2,16 @@ const pool = require("../../config/config.js");
 
 const findSupplyByName = async (name, db = pool) => {
   const result = await db.query(
-    "SELECT id, name, unit FROM supply WHERE LOWER(name) = LOWER($1)",
+    "SELECT id, supplier_id, name, unit FROM supply WHERE LOWER(name) = LOWER($1)",
     [name],
+  );
+  return result.rows[0] || null;
+};
+
+const findSupplierById = async (supplierId, db = pool) => {
+  const result = await db.query(
+    "SELECT id FROM supplier WHERE id = $1",
+    [supplierId],
   );
   return result.rows[0] || null;
 };
@@ -24,7 +32,9 @@ const upsertBranchSupplyInventory = async (
     `INSERT INTO branch_supply_inventory (branch_id, supply_id, quantity, min_stock)
      VALUES ($1, $2, $3, $4)
      ON CONFLICT (branch_id, supply_id)
-     DO UPDATE SET quantity = branch_supply_inventory.quantity + EXCLUDED.quantity
+     DO UPDATE SET
+       quantity = branch_supply_inventory.quantity + EXCLUDED.quantity,
+       min_stock = EXCLUDED.min_stock
      RETURNING *`,
     [branchId, supplyId, quantity, minStock],
   );
@@ -50,12 +60,42 @@ const getAllSupplies = async (db = pool) => {
   return result.rows;
 };
 
+const getAvailableSuppliesByBranch = async (branchId, db = pool) => {
+  const result = await db.query(
+    `SELECT s.id, s.supplier_id, s.name, s.unit, bsi.quantity, bsi.min_stock
+     FROM branch_supply_inventory bsi
+     JOIN supply s ON s.id = bsi.supply_id
+     WHERE bsi.branch_id = $1 AND bsi.quantity > 0
+     ORDER BY s.name ASC`,
+    [branchId],
+  );
+  return result.rows;
+};
+
+const getAvailableSupplyIdsByBranch = async (branchId, supplyIds, db = pool) => {
+  const result = await db.query(
+    `SELECT supply_id
+     FROM branch_supply_inventory
+     WHERE branch_id = $1 AND quantity > 0 AND supply_id = ANY($2::int[])`,
+    [branchId, supplyIds],
+  );
+  return result.rows.map((row) => row.supply_id);
+};
+
 const createRecipe = async ({ productId, name, description }, db = pool) => {
   const result = await db.query(
     "INSERT INTO recipe (product_id, name, description) VALUES ($1, $2, $3) RETURNING id, product_id, name, description",
     [productId, name, description],
   );
   return result.rows[0];
+};
+
+const findRecipeByProductId = async (productId, db = pool) => {
+  const result = await db.query(
+    "SELECT id FROM recipe WHERE product_id = $1",
+    [productId],
+  );
+  return result.rows[0] || null;
 };
 
 const createRecipeDetail = async (
@@ -72,15 +112,15 @@ const createRecipeDetail = async (
 const getAllRecipes = async (db = pool) => {
   const result = await db.query(`
     SELECT r.id, r.product_id, r.name, r.description,
-           json_agg(json_build_object(
+           COALESCE(json_agg(json_build_object(
              'supply_id', s.id,
              'name', s.name,
              'unit', s.unit,
              'quantity_used', rd.quantity_used
-           )) AS ingredients
+           )) FILTER (WHERE rd.supply_id IS NOT NULL), '[]'::json) AS ingredients
     FROM recipe r
-    JOIN recipe_detail rd ON r.id = rd.recipe_id
-    JOIN supply s ON rd.supply_id = s.id
+    LEFT JOIN recipe_detail rd ON r.id = rd.recipe_id
+    LEFT JOIN supply s ON rd.supply_id = s.id
     GROUP BY r.id
     ORDER BY r.id ASC
   `);
@@ -243,11 +283,15 @@ module.exports = {
   updatePackagedProduct,
   renameRecipe,
   findSupplyByName,
+  findSupplierById,
   createSupply,
   upsertBranchSupplyInventory,
   getInventoryByBranch,
   getAllSupplies,
+  getAvailableSuppliesByBranch,
+  getAvailableSupplyIdsByBranch,
   createRecipe,
+  findRecipeByProductId,
   createRecipeDetail,
   getAllRecipes,
   getCatalog,

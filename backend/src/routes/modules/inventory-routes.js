@@ -5,6 +5,7 @@ const {
   addProducts,
   listProducts,
   listSupplies,
+  listAvailableSupplies,
   addRecipes,
   listRecipes,
   alertStock,
@@ -17,18 +18,20 @@ const {
 const {
   requireEmployee,
   requireAdmin,
+  requireKitchenStaff,
 } = require("../../middleware/authorization.middleware.js");
 
-router.post("/products", addProducts);
-router.get("/products", listProducts);
-router.get("/supplies", listSupplies);
-router.post("/recipes", addRecipes);
-router.get("/recipes", listRecipes);
-router.get("/inventory/alerts", alertStock);
-router.post("/prepare", prepareRecipe);
-router.post("/catalog", requireAdmin, addCatalog);
+router.post("/products", requireAdmin, addProducts);
+router.get("/products", requireEmployee, listProducts);
+router.get("/supplies", requireEmployee, listSupplies);
+router.get("/supplies/available", requireEmployee, listAvailableSupplies);
+router.post("/recipes", requireKitchenStaff, addRecipes);
+router.get("/recipes", requireEmployee, listRecipes);
+router.get("/inventory/alerts", requireEmployee, alertStock);
+router.post("/prepare", requireEmployee, prepareRecipe);
+router.post("/catalog", requireKitchenStaff, addCatalog);
 router.get("/catalog/details", requireEmployee, listCatalogDetails);
 router.put("/catalog/:id", requireAdmin, editCatalog);
-router.get("/packaged-inventory", listPackagedInventory);
+router.get("/packaged-inventory", requireEmployee, listPackagedInventory);
 
 module.exports = router;

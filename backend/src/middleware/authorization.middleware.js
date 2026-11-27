@@ -37,6 +37,20 @@ const requireAdmin = (req, res, next) => {
   next();
 };
 
+const requireKitchenStaff = (req, res, next) => {
+  const role = String(req.user?.role || "").toUpperCase();
+  if (
+    req.user?.accountType !== "employee" ||
+    !["GERENTE", "COCINERO"].includes(role)
+  ) {
+    return res.status(403).json({
+      message: "Solo gerencia y cocina pueden administrar recetas."
+    });
+  }
+
+  next();
+};
+
 const requireCustomer = (req, res, next) => {
   if (req.user?.accountType !== "customer") {
     return res.status(403).json({ error: "Customers only" });
@@ -49,5 +63,6 @@ module.exports = {
   requireEmployee,
   requireCashier,
   requireAdmin,
+  requireKitchenStaff,
   requireCustomer
 };

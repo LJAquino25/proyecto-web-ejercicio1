@@ -33,39 +33,88 @@ const normalizeIngredients = (ingredients) => {
 };
 
 const addProductToInventory = async ({
-  branchId = 1,
-  supplierId = 1,
+  branchId,
+  supplierId,
+  employeeId,
   name,
   unit = "UNIT",
   quantity,
   minStock = 15,
 }) => {
+  const parsedBranchId = Number(branchId);
+  const parsedSupplierId = Number(supplierId);
+  const parsedEmployeeId = Number(employeeId);
+  const cleanName = String(name || "").trim();
+  const cleanUnit = String(unit || "").trim().toUpperCase();
   const parsedQty = Number(quantity);
-  if (!name || Number.isNaN(parsedQty) || parsedQty <= 0) {
-    throw createHttpError(400, "Name and quantity are obligatory");
+  const parsedMinStock = Number(minStock);
+  const validUnits = ["G", "KG", "ML", "L", "UNIT"];
+  if (
+    !cleanName ||
+    cleanName.length > 100 ||
+    !validUnits.includes(cleanUnit) ||
+    !Number.isInteger(parsedBranchId) ||
+    parsedBranchId <= 0 ||
+    !Number.isInteger(parsedSupplierId) ||
+    parsedSupplierId <= 0 ||
+    !Number.isInteger(parsedEmployeeId) ||
+    parsedEmployeeId <= 0 ||
+    !Number.isFinite(parsedQty) ||
+    parsedQty <= 0 ||
+    (cleanUnit === "UNIT" && !Number.isInteger(parsedQty)) ||
+    !Number.isFinite(parsedMinStock) ||
+    parsedMinStock < 0 ||
+    (cleanUnit === "UNIT" && !Number.isInteger(parsedMinStock))
+  ) {
+    throw createHttpError(400, "El insumo, unidad, sucursal, proveedor y cantidades deben ser válidos");
   }
 
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
 
-    let supply = await inventoryRecipesRepo.findSupplyByName(name, client);
+    const supplier = await inventoryRecipesRepo.findSupplierById(
+      parsedSupplierId,
+      client,
+    );
+    if (!supplier) {
+      throw createHttpError(400, "El proveedor seleccionado no existe");
+    }
+
+    let supply = await inventoryRecipesRepo.findSupplyByName(cleanName, client);
     if (!supply) {
       supply = await inventoryRecipesRepo.createSupply(
-        { supplierId, name, unit },
+        { supplierId: parsedSupplierId, name: cleanName, unit: cleanUnit },
         client,
+      );
+    } else if (Number(supply.supplier_id) !== parsedSupplierId) {
+      throw createHttpError(
+        409,
+        "Ya existe un insumo con ese nombre asociado a otro proveedor",
+      );
+    } else if (supply.unit !== cleanUnit) {
+      throw createHttpError(
+        409,
+        `Este insumo ya está registrado en ${supply.unit}; usá esa unidad`,
       );
     }
 
     const inventory = await inventoryRecipesRepo.upsertBranchSupplyInventory(
       {
-        branchId,
+        branchId: parsedBranchId,
         supplyId: supply.id,
         quantity: parsedQty,
-        minStock:
-          minStock !== undefined && minStock !== null && minStock !== ""
-            ? Number(minStock)
-            : 15,
+        minStock: parsedMinStock,
+      },
+      client,
+    );
+    await inventoryRecipesRepo.createInventoryMovement(
+      {
+        branchId: parsedBranchId,
+        employeeId: parsedEmployeeId,
+        supplyId: supply.id,
+        movementType: "IN",
+        quantity: parsedQty,
       },
       client,
     );
@@ -79,13 +128,16 @@ const addProductToInventory = async ({
     };
   } catch (error) {
     await client.query("ROLLBACK");
+    if (error.code === "23503") {
+      throw createHttpError(400, "La sucursal o el proveedor seleccionado no existe");
+    }
     throw error;
   } finally {
     client.release();
   }
 };
 
-const listProducts = async (branchId = 1) => {
+const listProducts = async (branchId) => {
   return await inventoryRecipesRepo.getInventoryByBranch(branchId);
 };
 
@@ -93,11 +145,16 @@ const listSupplies = async () => {
   return await inventoryRecipesRepo.getAllSupplies();
 };
 
+const listAvailableSupplies = async (branchId) => {
+  return await inventoryRecipesRepo.getAvailableSuppliesByBranch(branchId);
+};
+
 const addRecipe = async ({
   productId,
   name,
   description = null,
   ingredients,
+  branchId = null,
 }) => {
   const parsedProductId = Number(productId);
   const cleanName = String(name || "").trim();
@@ -115,6 +172,29 @@ const addRecipe = async ({
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
+
+    const existingRecipe = await inventoryRecipesRepo.findRecipeByProductId(
+      parsedProductId,
+      client,
+    );
+    if (existingRecipe) {
+      throw createHttpError(409, "Este producto ya tiene una receta registrada");
+    }
+
+    if (branchId !== null) {
+      const availableSupplyIds =
+        await inventoryRecipesRepo.getAvailableSupplyIdsByBranch(
+          Number(branchId),
+          normalizedIngredients.map((ingredient) => ingredient.supplyId),
+          client,
+        );
+      if (availableSupplyIds.length !== normalizedIngredients.length) {
+        throw createHttpError(
+          400,
+          "Solo podés usar insumos con existencia en tu sucursal",
+        );
+      }
+    }
 
     const recipe = await inventoryRecipesRepo.createRecipe(
       { productId: parsedProductId, name: cleanName, description },
@@ -141,6 +221,9 @@ const addRecipe = async ({
     };
   } catch (error) {
     await client.query("ROLLBACK");
+    if (error.code === "23505" && error.constraint === "recipe_product_id_key") {
+      throw createHttpError(409, "Este producto ya tiene una receta registrada");
+    }
     throw error;
   } finally {
     client.release();
@@ -155,25 +238,31 @@ const listMenu = async () => {
   return await inventoryRecipesRepo.getCatalog();
 };
 
-const getStockAlerts = async (branchId = 1) => {
+const getStockAlerts = async (branchId) => {
   return await inventoryRecipesRepo.getLowStockByBranch(branchId);
 };
 
 const prepareRecipe = async ({
   recipeId,
   recipeQuantity,
-  branchId = 1,
-  employeeId = 1,
+  branchId,
+  employeeId,
 }) => {
   const parsedRecipeId = Number(recipeId);
   const parsedQty = Number(recipeQuantity);
+  const parsedBranchId = Number(branchId);
+  const parsedEmployeeId = Number(employeeId);
 
   if (
     !Number.isInteger(parsedRecipeId) ||
     !Number.isInteger(parsedQty) ||
-    parsedQty <= 0
+    parsedQty <= 0 ||
+    !Number.isInteger(parsedBranchId) ||
+    parsedBranchId <= 0 ||
+    !Number.isInteger(parsedEmployeeId) ||
+    parsedEmployeeId <= 0
   ) {
-    throw createHttpError(400, "Recipe ID or quantity invalids");
+    throw createHttpError(400, "La receta, cantidad, sucursal o empleado no son válidos");
   }
 
   const client = await pool.connect();
@@ -186,23 +275,23 @@ const prepareRecipe = async ({
     );
 
     if (ingredients.length === 0) {
-      throw createHttpError(404, "Recipe not found or not enought ingredients");
+      throw createHttpError(404, "No se encontró la receta o no tiene ingredientes");
     }
 
     for (const ing of ingredients) {
       const totalNeeded = Number(ing.quantity_used) * parsedQty;
       const stockRow = await inventoryRecipesRepo.getBranchSupplyStockForUpdate(
-        branchId,
+        parsedBranchId,
         ing.supply_id,
         client,
       );
 
       if (!stockRow || Number(stockRow.quantity) < totalNeeded) {
-        throw createHttpError(400, "Not enougtht suplies");
+        throw createHttpError(400, "No hay suficientes insumos en la sucursal");
       }
 
       await inventoryRecipesRepo.decrementBranchSupplyStock(
-        branchId,
+        parsedBranchId,
         ing.supply_id,
         totalNeeded,
         client,
@@ -210,8 +299,8 @@ const prepareRecipe = async ({
 
       await inventoryRecipesRepo.createInventoryMovement(
         {
-          branchId,
-          employeeId,
+          branchId: parsedBranchId,
+          employeeId: parsedEmployeeId,
           supplyId: ing.supply_id,
           movementType: "OUT",
           quantity: -totalNeeded,
@@ -222,7 +311,7 @@ const prepareRecipe = async ({
 
     await client.query("COMMIT");
 
-    const alerts = await inventoryRecipesRepo.getLowStockByBranch(branchId);
+    const alerts = await inventoryRecipesRepo.getLowStockByBranch(parsedBranchId);
     return { alerts };
   } catch (error) {
     await client.query("ROLLBACK");
@@ -239,6 +328,7 @@ const addCatalog = async ({
   supplierId = null,
   unitCost = null,
   ingredients,
+  branchId = null,
 }) => {
   const normalizedType = String(productType).toUpperCase();
   const cleanName = String(name || "").trim();
@@ -274,6 +364,20 @@ const addCatalog = async ({
     let product = await inventoryRecipesRepo.findProductByName(cleanName, client);
     if (product) {
       throw createHttpError(400, "A product with this name already exists");
+    }
+    if (normalizedType === "PREPARED" && branchId !== null) {
+      const availableSupplyIds =
+        await inventoryRecipesRepo.getAvailableSupplyIdsByBranch(
+          Number(branchId),
+          normalizedIngredients.map((ingredient) => ingredient.supplyId),
+          client,
+        );
+      if (availableSupplyIds.length !== normalizedIngredients.length) {
+        throw createHttpError(
+          400,
+          "Solo podés usar insumos con existencia en tu sucursal",
+        );
+      }
     }
     product = await inventoryRecipesRepo.createProduct(
       { name: cleanName, price, productType: normalizedType },
@@ -396,6 +500,7 @@ module.exports = {
   addProductToInventory,
   listProducts,
   listSupplies,
+  listAvailableSupplies,
   addRecipe,
   listRecipes,
   listMenu,

@@ -473,4 +473,5 @@ module.exports = {
   getAccountPayableById,
 createSupplierPayment,
 updateAccountPayableBalance,
+  updateSupplier
 };

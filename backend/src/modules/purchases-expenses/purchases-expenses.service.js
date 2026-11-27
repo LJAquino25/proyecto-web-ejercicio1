@@ -584,4 +584,5 @@ module.exports = {
   editSupplier,
   listAccountPayables,
   addSupplierPayment,
+  editSupplier
 };

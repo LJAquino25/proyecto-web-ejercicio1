@@ -224,4 +224,5 @@ module.exports = {
   updateSupplier,
   getAccountPayables,
   postSupplierPayment,
+  updateSupplier
 };

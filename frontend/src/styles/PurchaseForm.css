@@ -1,0 +1,88 @@
+.purchase-form-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 18px;
+  padding: 16px 18px;
+  background: #e5e8f1;
+  color: #404e75;
+  border: 1px solid var(--color-blue);
+  border-radius: var(--radius-sm);
+}
+
+.purchase-form-notice svg {
+  flex-shrink: 0;
+}
+
+.purchase-form-notice p {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.6;
+}
+
+.admin-form-field input.purchase-form-unit {
+  background: #f0ede6;
+  color: #766b5f;
+  font-weight: 700;
+  cursor: default;
+}
+
+.admin-form-field input.purchase-form-unit:focus {
+  border-color: #d5cec2;
+  box-shadow: none;
+}
+
+.purchase-cost-help {
+  font-size: 12px;
+  font-weight: 600;
+  color: #766b5f;
+  line-height: 1.5;
+}
+
+.purchase-tax-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-top: 28px;
+  padding: 20px;
+  background: var(--color-white);
+  border: 1px solid #d5cec2;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.purchase-tax-option input {
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  flex-shrink: 0;
+  accent-color: var(--color-fuchsia);
+  cursor: pointer;
+}
+
+.purchase-tax-option > div {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.purchase-tax-option strong {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.purchase-tax-option small {
+  color: #766b5f;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.admin-form-modal .modal-body {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.admin-form-modal .modal-body::-webkit-scrollbar {
+  display: none;
+}

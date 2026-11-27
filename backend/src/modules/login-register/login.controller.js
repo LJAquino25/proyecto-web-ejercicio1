@@ -17,7 +17,9 @@ const login = async (req, res) => {
 
         return res.status(201).json({
             message: "login successfully",
-            customer: login.accountType
+            customer: login.accountType,
+            role: login.role || null,
+            branchId: login.branchId || null
         })
     } catch (error) {
         const status = error.statusCode || 400;

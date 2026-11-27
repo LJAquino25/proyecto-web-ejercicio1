@@ -71,7 +71,10 @@ const postAddOrder = async (req, res) => {
         } = req.body;
 
         const branchId = Number(branch_id);
-        const customerId = parseOptionalPositiveInt(customer_id);
+        const customerId =
+            req.user?.accountType === "customer"
+                ? req.user.id
+                : parseOptionalPositiveInt(customer_id);
         const employeeId = parseOptionalPositiveInt(employee_id);
         const invoiceType = normalizeInvoiceType(invoice_type);
         const orderStatus = String(status || "").trim().toUpperCase();

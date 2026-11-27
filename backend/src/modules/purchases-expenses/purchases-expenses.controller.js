@@ -157,6 +157,62 @@ const updateSupplier = async (req, res, next) => {
   }
 };
 
+const getAccountPayables = async (req, res) => {
+  try {
+    if (req.user?.accountType !== "employee" ||
+        req.user?.role !== "GERENTE") {
+      return res.status(403).json({
+        message: "Access denied"
+      });
+    }
+
+    const accountPayables =
+      await purchasesExpensesService.listAccountPayables();
+
+    return res.status(200).json({
+      total: accountPayables.length,
+      accountPayables
+    });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({
+      message: error.message || "Error retrieving accounts payable"
+    });
+  }
+};
+
+const postSupplierPayment = async (req, res) => {
+  try {
+    if (
+      req.user?.accountType !== "employee" ||
+      req.user?.role !== "GERENTE"
+    ) {
+      return res.status(403).json({
+        message: "Access denied"
+      });
+    }
+
+    const result =
+      await purchasesExpensesService.addSupplierPayment({
+        accountPayableId:
+          req.body.accountPayableId ??
+          req.body.account_payable_id,
+        employeeId: req.user.id,
+        amount: req.body.amount,
+        method: req.body.method,
+        reference: req.body.reference ?? null
+      });
+
+    return res.status(201).json({
+      message: "Supplier payment registered successfully",
+      ...result
+    });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({
+      message: error.message || "Error registering supplier payment"
+    });
+  }
+};
+
 module.exports = {
   postAddSupplier,
   getSuppliers,
@@ -165,5 +221,8 @@ module.exports = {
   postAddPurchaseInvoice,
   postAddExpense,
   getExpenses,
+  updateSupplier,
+  getAccountPayables,
+  postSupplierPayment,
   updateSupplier
 };

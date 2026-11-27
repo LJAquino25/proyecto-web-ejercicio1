@@ -31,19 +31,27 @@ const remove = async ({ id }) => {
 }
 
 const list = async ({ type }) => {
+    const params = [];
+    let roleFilter = "";
+    if (type) {
+        params.push(type);
+        roleFilter = `WHERE e.role = $${params.length}`;
+    }
     const result = await pool.query(`
         SELECT
             e.id,
+            e.branch_id,
             b.name AS branch_name,
             e.role,
             e.full_name,
             e.email,
+            e.monthly_salary,
             e.is_active
         FROM employee e
         INNER JOIN branch b ON e.branch_id = b.id
-        WHERE e.role = $1
-        ORDER BY e.id ASC;`
-        , [type]);
+        ${roleFilter}
+        ORDER BY e.id ASC;`,
+        params);
     return result.rows;
 }
 

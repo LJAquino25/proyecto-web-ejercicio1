@@ -1,0 +1,337 @@
+.team-page {
+  width: 100%;
+}
+
+.team-tabs {
+  display: flex;
+  gap: 12px;
+}
+
+.team-filters.employees {
+  grid-template-columns: 1.3fr 1fr 1fr 0.8fr;
+}
+
+.team-filters.payroll {
+  grid-template-columns: 1.5fr 1fr;
+}
+
+.team-page-error {
+  padding: 12px 16px;
+  margin: 0 0 18px;
+  background: #f0e7e4;
+  color: #9c4545;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+}
+
+.team-page-success {
+  padding: 12px 16px;
+  margin: 0 0 18px;
+  background: #e7f0e7;
+  color: #386348;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+}
+
+.payroll-form-grid {
+  margin-top: 20px;
+}
+
+.team-status.generated {
+  background: #e7f0e7;
+  color: #386348;
+}
+
+.team-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 16px 0;
+  color: #766b5f;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.team-pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.team-pagination-controls button {
+  padding: 8px 12px;
+  background: var(--color-white);
+  border: 1px solid var(--color-text);
+  border-radius: 8px;
+  font: inherit;
+}
+
+.team-pagination-controls button:not(:disabled):hover {
+  background: var(--color-yellow);
+}
+
+.team-pagination-controls button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.team-table {
+  min-width: 900px;
+}
+
+.team-table th:last-child,
+.team-table td:last-child,
+.payroll-table th:last-child,
+.payroll-table td:last-child {
+  position: sticky;
+  right: 0;
+  z-index: 1;
+}
+
+.team-table th:last-child,
+.payroll-table th:last-child {
+  z-index: 2;
+  background: #f4f1e9;
+}
+
+.team-table td:last-child,
+.payroll-table td:last-child {
+  background: var(--color-white);
+}
+
+.team-table tbody tr:hover td:last-child,
+.payroll-table tbody tr:hover td:last-child {
+  background: #faf8f2;
+}
+
+.payroll-table {
+  min-width: 1100px;
+}
+
+.team-employee {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.team-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 46px;
+  height: 46px;
+  border: 1px solid var(--color-text);
+  border-radius: 15px;
+  font-family: var(--font-heading);
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.team-avatar.pink {
+  background: var(--color-pink);
+}
+
+.team-avatar.yellow {
+  background: var(--color-yellow);
+}
+
+.team-avatar.blue {
+  background: var(--color-blue);
+}
+
+.team-employee-info {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.team-employee-info strong {
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.team-employee-info small {
+  color: #766b5f;
+  font-size: 12px;
+}
+
+.team-role {
+  display: inline-flex;
+  padding: 7px 12px;
+  background: #f4f1e9;
+  color: var(--color-text);
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.team-money {
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.team-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.team-status.active,
+.team-status.paid {
+  background: #e7f0e7;
+  color: #386348;
+}
+
+.team-status.inactive {
+  background: #f4f1e9;
+  color: #766b5f;
+}
+
+.team-status.pending {
+  background: var(--color-pink);
+  color: #9d1855;
+}
+
+.team-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.team-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  color: var(--color-text);
+  border: 1px solid var(--color-text);
+  border-radius: 10px;
+  transition: var(--transition);
+}
+
+.team-action.view {
+  background: var(--color-blue);
+}
+
+.team-action.edit {
+  background: var(--color-yellow);
+}
+
+.team-action:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 2px 2px 0 var(--color-text);
+}
+
+.team-action:disabled {
+  cursor: not-allowed;
+}
+
+.team-action:focus-visible {
+  outline: 3px solid var(--color-fuchsia);
+  outline-offset: 2px;
+}
+
+.team-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.team-detail-grid > div {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 14px;
+  background: var(--color-white);
+  border: 1px solid #d5cec2;
+  border-radius: var(--radius-sm);
+}
+
+.team-detail-grid span {
+  color: #766b5f;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.team-detail-grid strong {
+  overflow-wrap: anywhere;
+}
+
+.employee-edit-grid {
+  margin-top: 20px;
+}
+
+.payroll-period {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.payroll-period small {
+  color: #766b5f;
+  font-size: 12px;
+}
+
+.payroll-net {
+  color: #386348;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.team-page .inventory-table-wrapper {
+  scrollbar-width: auto;
+  -ms-overflow-style: auto;
+}
+
+.team-page .inventory-table-wrapper::-webkit-scrollbar {
+  display: block;
+  height: 8px;
+}
+
+.team-page a.inventory-primary-button {
+  text-decoration: none;
+}
+
+@media (max-width: 1200px) {
+  .team-filters.employees,
+  .team-filters.payroll {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .team-filters.employees,
+  .team-filters.payroll {
+    grid-template-columns: 1fr;
+  }
+
+  .team-tabs .sales-tab {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .team-pagination {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .team-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}

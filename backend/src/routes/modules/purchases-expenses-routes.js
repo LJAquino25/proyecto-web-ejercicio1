@@ -9,7 +9,9 @@ const {
   getPurchaseOrders,
   postAddPurchaseInvoice,
   postAddExpense,
-  getExpenses
+  getExpenses,
+  getAccountPayables,
+  postSupplierPayment,
 } = require("../../modules/purchases-expenses/purchases-expenses.controller.js");
 
 // Suppliers
@@ -28,4 +30,7 @@ router.post("/purchase-invoices", postAddPurchaseInvoice);
 router.post("/expenses", postAddExpense);
 router.get("/expenses", getExpenses);
 
+
+router.get("/account-payables", getAccountPayables);
+router.post("/supplier-payments", postSupplierPayment);
 module.exports = router;

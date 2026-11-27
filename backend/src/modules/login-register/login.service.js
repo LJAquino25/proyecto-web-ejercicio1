@@ -22,6 +22,7 @@ const login = async ({ email, password }) => {
         const token = jwt.sign({
             id: employee.id,
             role: employee.role,
+            branchId: employee.branch_id,
             accountType: "employee",
         },
             process.env.JWT_SECRET,
@@ -31,7 +32,9 @@ const login = async ({ email, password }) => {
         )
         return {
             token,
-            accountType: "employee"
+            accountType: "employee",
+            role: employee.role,
+            branchId: employee.branch_id
         }
     }
 

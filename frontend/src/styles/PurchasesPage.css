@@ -1,0 +1,259 @@
+.purchases-page {
+  width: 100%;
+}
+
+.purchases-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.purchases-tabs .sales-tab {
+  padding: 14px 12px;
+  font-size: 13px;
+}
+
+.purchases-tabs .sales-tab svg {
+  flex-shrink: 0;
+}
+
+.purchases-filters {
+  grid-template-columns: 1.5fr 1fr;
+}
+
+.purchases-table {
+  min-width: 850px;
+}
+
+.purchases-table td:first-child {
+  font-weight: 800;
+}
+
+.purchase-money {
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.purchase-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.purchase-status.active,
+.purchase-status.received,
+.purchase-status.paid {
+  background: #e7f0e7;
+  color: #386348;
+}
+
+.purchase-status.pending {
+  background: var(--color-pink);
+  color: #9d1855;
+}
+
+.purchase-status.partial {
+  background: #f9e9a8;
+  color: #756019;
+}
+
+.purchase-status.inactive,
+.purchase-status.cancelled {
+  background: #f4f1e9;
+  color: #766b5f;
+}
+
+.purchase-status.overdue {
+  background: #f5d9d9;
+  color: #9c4545;
+}
+
+.purchase-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.purchase-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  color: var(--color-text);
+  border: 1px solid var(--color-text);
+  border-radius: 10px;
+  transition: var(--transition);
+}
+
+.purchase-action.view {
+  background: var(--color-blue);
+}
+
+.purchase-action.edit {
+  background: var(--color-yellow);
+}
+
+.purchase-action:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 2px 2px 0 var(--color-text);
+}
+
+.purchase-action:disabled {
+  cursor: not-allowed;
+}
+
+.purchases-page .inventory-table-wrapper {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.purchases-page .inventory-table-wrapper::-webkit-scrollbar {
+  display: none;
+}
+
+@media (max-width: 1200px) {
+  .purchases-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .purchases-filters {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .purchases-tabs .sales-tab {
+    flex-direction: column;
+    font-size: 12px;
+    gap: 8px;
+  }
+}
+
+.purchase-detail-empty {
+  padding: 24px;
+  background: #f4f1e9;
+  border: 1px dashed #d5cec2;
+  border-radius: var(--radius-sm);
+  color: #766b5f;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.purchase-payment-progress {
+  margin-top: 24px;
+  padding: 22px;
+  background: var(--color-white);
+  border: 1px solid #d5cec2;
+  border-radius: var(--radius-md);
+}
+
+.purchase-progress-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.purchase-progress-heading strong {
+  font-size: 18px;
+  color: var(--color-text);
+}
+
+.purchase-progress-track {
+  height: 14px;
+  background: #e5e8f1;
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+
+.purchase-progress-fill {
+  height: 100%;
+  background: var(--color-blue);
+  border-radius: var(--radius-pill);
+  transition: width 0.3s ease;
+}
+
+.purchases-tabs {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.purchases-tabs .sales-tab {
+  justify-content: center;
+}
+
+.suppliers-filters {
+  grid-template-columns: 1fr;
+}
+
+.suppliers-filters .inventory-field {
+  max-width: 450px;
+}
+
+.purchases-table.suppliers-table {
+  min-width: 480px;
+}
+
+.suppliers-table th:last-child,
+.suppliers-table td:last-child {
+  width: 120px;
+}
+
+.purchase-status.recorded {
+  background: #e7f0e7;
+  color: #386348;
+}
+
+.purchase-status.void {
+  background: #f5d9d9;
+  color: #9c4545;
+}
+
+.purchase-payment-type {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.purchase-payment-type.cash {
+  background: #dce1ef;
+  color: #404e75;
+}
+
+.purchase-payment-type.credit {
+  background: #f9e9a8;
+  color: #756019;
+}
+
+@media (max-width: 768px) {
+  .purchases-tabs {
+    grid-template-columns: 1fr;
+  }
+
+  .purchases-tabs .sales-tab {
+    justify-content: flex-start;
+    flex-direction: row;
+    padding: 14px 18px;
+  }
+
+  .suppliers-filters .inventory-field {
+    max-width: none;
+  }
+}

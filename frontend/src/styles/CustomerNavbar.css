@@ -1,0 +1,131 @@
+.customer-header {
+  padding: 18px 4%;
+  background: var(--color-cream);
+}
+
+.customer-navbar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 16px 28px;
+  background: var(--color-yellow);
+  border: 2px solid var(--color-text);
+  border-radius: var(--radius-pill);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--color-fuchsia);
+}
+
+.brand-name {
+  display: block;
+  font-family: var(--font-heading);
+  font-size: 32px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -2px;
+}
+
+.brand-subtitle {
+  display: block;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 3px;
+  margin-top: 5px;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
+.nav-links a {
+  font-weight: 800;
+  transition: var(--transition);
+}
+
+.nav-links a:hover,
+.nav-links a.active {
+  color: var(--color-fuchsia);
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nav-icon,
+.mobile-menu-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 43px;
+  height: 43px;
+  border: 2px solid var(--color-text);
+  border-radius: 50%;
+  background: var(--color-cream);
+  color: var(--color-text);
+  transition: var(--transition);
+}
+
+.nav-icon:hover,
+.mobile-menu-button:hover {
+  background: var(--color-fuchsia);
+  color: var(--color-white);
+  transform: rotate(-8deg);
+}
+
+.mobile-menu-button {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .customer-navbar {
+    padding: 14px;
+    gap: 8px;
+  }
+
+  .brand-name {
+    font-size: 24px;
+  }
+
+  .brand-subtitle {
+    font-size: 7px;
+    letter-spacing: 1px;
+  }
+
+  .mobile-menu-button {
+    display: flex;
+  }
+
+  .nav-links {
+    display: none;
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 0;
+    right: 0;
+    padding: 24px;
+    background: var(--color-yellow);
+    border: 2px solid var(--color-text);
+    border-radius: var(--radius-md);
+    flex-direction: column;
+    z-index: 100;
+  }
+
+  .nav-links.open {
+    display: flex;
+  }
+
+  .nav-icon,
+  .mobile-menu-button {
+    width: 35px;
+    height: 35px;
+  }
+}

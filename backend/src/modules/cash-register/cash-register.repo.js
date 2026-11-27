@@ -53,11 +53,14 @@ const findCashSessions = async ({ status = null, branch = null } = {}) => {
   return rows;
 };
 
-const findOpenCashSession = async (branch = null) => {
+const findOpenCashSession = async (branch = null, branchId = null) => {
   const params = [];
   let branchFilter = "";
 
-  if (branch) {
+  if (branchId) {
+    params.push(Number(branchId));
+    branchFilter = `AND cr.branch_id = $${params.length}`;
+  } else if (branch) {
     params.push(String(branch).trim().toLowerCase());
     branchFilter = `AND LOWER(b.name) = $${params.length}`;
   }
@@ -111,23 +114,8 @@ const findFirstCashRegister = async () => {
 
 const findEmployeeById = async (employeeId) => {
   const { rows } = await pool.query(
-    `SELECT id FROM employee WHERE id = $1`,
+    `SELECT id, branch_id, role, is_active FROM employee WHERE id = $1`,
     [Number(employeeId)]
-  );
-  return rows[0] || null;
-};
-
-const findEmployeeByFullName = async (cashier) => {
-  const { rows } = await pool.query(
-    `SELECT id FROM employee WHERE LOWER(full_name) = $1 LIMIT 1`,
-    [String(cashier).trim().toLowerCase()]
-  );
-  return rows[0] || null;
-};
-
-const findFirstActiveEmployee = async () => {
-  const { rows } = await pool.query(
-    `SELECT id FROM employee WHERE is_active = TRUE ORDER BY id ASC LIMIT 1`
   );
   return rows[0] || null;
 };
@@ -210,8 +198,6 @@ module.exports = {
   findCashRegisterByBranchName,
   findFirstCashRegister,
   findEmployeeById,
-  findEmployeeByFullName,
-  findFirstActiveEmployee,
   findCashSessionById,
   insertCashSession,
   closeCashSessionInDb,

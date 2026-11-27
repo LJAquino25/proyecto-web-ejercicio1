@@ -149,7 +149,7 @@ CREATE TABLE branch_packaged_inventory (
 CREATE TABLE inventory_movement (
     id             SERIAL PRIMARY KEY,
     branch_id      INT NOT NULL REFERENCES branch(id),
-    employee_id    INT NOT NULL REFERENCES employee(id),
+    employee_id    INT REFERENCES employee(id),
     supply_id      INT REFERENCES supply(id),
     product_id     INT REFERENCES packaged_product(product_id),
     movement_type  VARCHAR(10) NOT NULL
@@ -276,7 +276,7 @@ CREATE TABLE customer_order (
     status        VARCHAR(15) NOT NULL DEFAULT 'CART'
                   CHECK (status IN ('CART', 'PAID', 'IN_PREPARATION',
                                     'DELIVERED', 'CANCELLED')),
-    created_at    TIMESTAMP NOT NULL DEFAULT NOW(),
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     subtotal      NUMERIC(10,2) NOT NULL DEFAULT 0 CHECK (subtotal >= 0),
     tax           NUMERIC(10,2) NOT NULL DEFAULT 0 CHECK (tax >= 0), -- IVA 13%
     total         NUMERIC(10,2) NOT NULL DEFAULT 0 CHECK (total >= 0),
@@ -312,10 +312,13 @@ CREATE TABLE invoice (
 );
 
 CREATE TABLE tax_credit_note (
+    correlative       SERIAL NOT NULL,
     order_id          INT PRIMARY KEY REFERENCES customer_order(id) ON DELETE CASCADE,
+    issued_at         TIMESTAMP NOT NULL DEFAULT NOW(),
     nit               VARCHAR(20)  NOT NULL,
     nrc               VARCHAR(20)  NOT NULL,
     institution_name  VARCHAR(150) NOT NULL,
     business_line     VARCHAR(150),
-    address           VARCHAR(250)
+    address           VARCHAR(250),
+    CONSTRAINT tax_credit_note_correlative_uq UNIQUE (correlative)
 );
